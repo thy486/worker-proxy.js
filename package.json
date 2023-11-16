@@ -1,0 +1,25 @@
+{
+  "name": "worker-proxy.js",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^20.9.0",
+    "@typescript-eslint/eslint-plugin": "^6.11.0",
+    "@typescript-eslint/parser": "^6.11.0",
+    "@vitest/web-worker": "^0.34.6",
+    "bun-types": "latest",
+    "eslint": "^8.53.0",
+    "happy-dom": "^12.10.3",
+    "prettier": "^3.1.0",
+    "tsx": "^4.1.2",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0",
+    "vitest": "^0.34.6"
+  },
+  "scripts": {
+    "dev": "vite --force",
+    "fmt": "prettier --config .prettierrc --write ./**/*.{ts}",
+    "lint": "eslint . --fix",
+    "test": "vitest"
+  }
+}
