@@ -7,6 +7,8 @@ import {
     createClassSpawn,
     createPointerSpawn,
     free,
+    SerializeToPointer,
+    serializeToPointer,
 } from '../class/master';
 import { type CreateFunctionSpawn, createFunctionSpawn } from '../fn/master';
 import { type PromiseOrValue } from '../../type';
@@ -45,6 +47,7 @@ interface IMasterSpawnRuntime<
     spawnFunction: CreateFunctionSpawn<TransferableObject, TFunctionSpawn>;
     spawnClass: CreateClassSpawn<TransferableObject, TClassSpawn>;
     deserializePointer: CreatePointerSpawn<TransferableObject, TClassSpawn>;
+    serializePointer: SerializeToPointer<TransferableObject, TClassSpawn>;
     free: Free<TransferableObject, TClassSpawn>;
 }
 
@@ -167,7 +170,8 @@ export const createMasterSpawn: UnshiftArgs<CreateMasterSpawn, [masterImpl: Mast
     return {
         spawnClass: (ns, options) => createClassSpawn(msgSender, classContext, ns, options),
         spawnFunction: (ns, options) => createFunctionSpawn(msgSender, ns, options),
-        deserializePointer: (ns, ctorKey, pointer) => createPointerSpawn(msgSender, classContext, ns, ctorKey, pointer),
+        deserializePointer: (ns, ctorKey, pointer) => createPointerSpawn(msgSender, classContext, ns, ctorKey as string, pointer),
+        serializePointer: serializeToPointer,
         free: (instance) => free(msgSender, classContext, instance as never),
     } as IMasterSpawnRuntime<unknown, Record<string, C.ExposedModuleTable<unknown> | F.ExposedModuleTable<unknown>>>;
 };

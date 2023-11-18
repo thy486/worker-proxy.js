@@ -7,8 +7,8 @@ import {
 import type { TransferListItem } from 'worker_threads';
 
 export {
-    createPointer as pointerify,
-    fromPointer as serializePointer,
+    createPointer,
+    fromMasterInstance,
     type IPointer,
 } from '../../../types/class/worker';
 

@@ -1,4 +1,4 @@
-import type { ClassType, FunctionTable, InstancePropertyTable, StaticPropertyTable } from '../type';
+import type { ClassType, FunctionTable, StaticPropertyTable } from '../type';
 import type { IPointer } from './class/worker';
 import type * as F from './fn/worker';
 import type * as C from './class/worker';
@@ -19,7 +19,7 @@ export interface IActionData {
 }
 
 export interface ICallPlainFunctionData<
-    T extends F.ExposedModuleTable = never,
+    T extends F.ExposedModuleTable = F.ExposedModuleTable,
     TKeys extends keyof T = keyof T,
     TArgs extends Parameters<T[TKeys]['value']> = Parameters<T[TKeys]['value']>,
 > extends IActionData,
@@ -33,7 +33,7 @@ export interface ICallPlainFunctionData<
 
 export interface ICallClassInstanceFunctionData<
     T extends ClassType = ClassType,
-    TInstanceTable extends FunctionTable<InstancePropertyTable<T>> = FunctionTable<InstancePropertyTable<T>>,
+    TInstanceTable extends FunctionTable<InstanceType<T>> = FunctionTable<InstanceType<T>>,
     TKeys extends keyof TInstanceTable = keyof TInstanceTable,
 > extends IActionData {
     type: EAction.CALL;

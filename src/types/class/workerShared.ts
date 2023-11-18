@@ -1,4 +1,4 @@
-import type { ClassType, Fn, FunctionTable, InstancePropertyTable, StaticPropertyTable } from '../../type';
+import type { ClassType, Fn, FunctionTable, StaticPropertyTable } from '../../type';
 import type * as FS from '../fn/workerShared';
 import type { IClassDefineOptions, IClassDefineRequiredOptions } from './shared';
 import type { IConstructFunctionOption } from './worker';
@@ -13,7 +13,7 @@ export type ClassStaticExportProxy<
 export type ClassInstanceExportProxy<
     TransferableObject,
     T extends ClassType,
-    TInstanceProperties extends FunctionTable<InstancePropertyTable<T>> = FunctionTable<InstancePropertyTable<T>>,
+    TInstanceProperties extends FunctionTable<InstanceType<T>> = FunctionTable<InstanceType<T>>,
 > = {
     [K in keyof TInstanceProperties]: FS.FunctionProxy<TransferableObject, TInstanceProperties[K]>;
 };
@@ -35,7 +35,7 @@ export type ExtractProxyFromOptions<
     T extends ClassType = ClassType,
     TOptions extends IClassDefineOptions = IClassDefineOptions,
     TStaticProperties extends StaticPropertyTable<T> = StaticPropertyTable<T>,
-    TInstanceProperties extends InstancePropertyTable<T> = InstancePropertyTable<T>,
+    TInstanceProperties extends InstanceType<T> = InstanceType<T>,
 > = Readonly<
     IClassDefineRequiredOptions<
         ExtractFunctionProxy<TransferableObject, TOptions['static'], TStaticProperties>,

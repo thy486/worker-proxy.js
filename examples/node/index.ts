@@ -21,6 +21,9 @@ import type { ExportsValue } from './workerExports';
     const cls = wk.spawnClass('classTable', {
         Foo: {
             construct: {
+                async serialize(input) {
+                    return mergeTuple(input, [await wk.serializePointer('classTable', 'Bar', input[0])] as const);
+                },
             },
             instance: {
                 bar: {
@@ -32,13 +35,33 @@ import type { ExportsValue } from './workerExports';
         },
     });
     console.log(JSON.stringify(cls));
-    const foo = new cls.Foo();
+    const bar = new cls.Bar();
+    const foo = new cls.Foo(bar);
 
     // console.log(cls);
     // console.log(wk);
-    console.log(await foo.value());
+    console.log(await foo.bar());
     const n = await wk.free(foo);
+
     console.log(n);
-    console.log(await (await new cls.Foo().bar()).value());
+    // console.log(await await new cls.Foo().bar());
     worker.terminate();
 })().catch(console.error);
+
+type CreateTuple<T extends any[]> = (...args: T) => T;
+export type MergedTuple<T extends any[], T2 extends any[], F = CreateTuple<T>> = Parameters<
+    F extends (...args: infer Args) => any
+        ? (
+              ...args: {
+                  [K in keyof Args]: K extends keyof T2 ? T2[K] : Args[K];
+              }
+          ) => any
+        : never
+>;
+type MergeTuple = <T extends any[], T2 extends any[]>(origin: T, current: T2) => MergedTuple<T, T2>;
+const mergeTuple: MergeTuple = (a, b) => {
+    for (let i = 0, len = b.length; i < len; i++) {
+        a[i] = b[i];
+    }
+    return a;
+};

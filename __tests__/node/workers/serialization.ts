@@ -2,13 +2,18 @@ import { expose, Class } from '../../../src/envs/node/worker';
 import { Foo, Bar, Car } from '../../lib/serialization';
 
 const exposed = {
-    serialization: Class.expose({ 
+    serialization: Class.expose({
         Foo,
         Bar: Class.define(Bar, {
+            construct: {
+                deserialize(message) {
+                    return [Class.fromMasterInstance(message[0])] as const;
+                },
+            },
             instance: {
                 getFoo: {
                     serialize(input) {
-                        return Class.pointerify(Foo, input);
+                        return Class.createPointer(Foo, input);
                     },
                 },
                 getCar: {
@@ -16,20 +21,25 @@ const exposed = {
                         if (input === undefined) {
                             return input;
                         }
-                        return Class.pointerify(Car, input);
+                        return Class.createPointer(Car, input);
                     },
-                }
-            }
+                },
+            },
         }),
         Car: Class.define(Car, {
+            construct: {
+                deserialize(message) {
+                    return [Class.fromMasterInstance(message[0])] as const;
+                },
+            },
             instance: {
                 getBar: {
                     serialize(input) {
-                        return Class.pointerify(Bar, input);
+                        return Class.createPointer(Bar, input);
                     },
-                }
-            }
-        })
+                },
+            },
+        }),
     }),
 };
 export type SerializationExposed = typeof exposed;

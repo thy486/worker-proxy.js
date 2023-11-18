@@ -3,12 +3,12 @@ import * as FWS from './workerShared';
 import * as FS from './shared';
 import type { Fn } from '../../type';
 import { isFunction } from '../../typeUtils';
-import type { TransferableOptions } from '../../transferable';
+import type { ITransferableOptions } from '../../transferable';
 
 const $FUNCTION_DEFINE = Symbol('function::define');
 
 export interface IRuntimeOptions<TransferableObject = unknown, T extends Fn = Fn, Result = Awaited<ReturnType<T>>>
-    extends TransferableOptions<TransferableObject, Result>,
+    extends ITransferableOptions<TransferableObject, Result>,
         FS.IFunctionResultBySerialize<T> {}
 
 export interface IDefinedModuleTableExport<T extends Fn, TOptions extends IRuntimeOptions> {

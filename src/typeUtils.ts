@@ -10,7 +10,9 @@ export type UnshiftArgs<T extends Fn, TArgs extends unknown[]> = (
 
 export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
 
-export type EqualToDefault<T, D> = Equal<T, D> extends true ? D : T;
+export type EqualToDefault<Value, Default, EqualValue = Default> = Equal<Value, EqualValue> extends true
+    ? Default
+    : Value;
 
 export type ClassEqual<X extends ClassType, Y extends ClassType> = Equal<
     StaticPropertyTable<X>,
@@ -28,7 +30,7 @@ export type ClassEqualToDefault<T extends ClassType, D extends ClassType> = Clas
 export type PhantomData<Key extends symbol, PhantomType> = {
     [PK in Key]: PhantomType;
 };
-export type PhantomType<T, PhantomKey extends symbol, PhantomType> = T & PhantomData<PhantomKey, PhantomType>;
+export type Phantom<T, PhantomKey extends symbol, PhantomType> = T & PhantomData<PhantomKey, PhantomType>;
 export type ExtractPhantomData<T, PhantomKey extends symbol, Default = never> = T extends PhantomData<
     PhantomKey,
     infer PhantomType
@@ -45,7 +47,7 @@ export const isPlainObject = (value: unknown): value is object =>
 
 export const mergeVoidFunction =
     <T extends () => void>(a: T, b: T): (() => void) =>
-        (): void => {
-            a();
-            b();
-        };
+    (): void => {
+        a();
+        b();
+    };

@@ -22,26 +22,13 @@ export type ExtractFunctionResultFnBySerialize<
           ? (...args: DeSerMsgIn) => Promise<SerializedMsgOut>
           : TFn
     : TFn;
-export type ExtractFunctionResultBySerialize<
-    TFn extends Fn,
-    S,
-    TArgs extends Parameters<TFn> = Parameters<TFn>,
-    TReturnType extends ReturnType<TFn> = ReturnType<TFn>,
-    TResult extends Awaited<TReturnType> = Awaited<TReturnType>,
-    TDefaultSerializer extends S.WithDefault<S, TArgs, TResult> = S.WithDefault<S, TArgs, TResult>,
-> = TDefaultSerializer extends S.Serializer<never, infer SerMsgIn, infer _, infer SerializedMsgOut>
-    ? // the type of serialize result is not changed
-      Equal<SerializedMsgOut, SerMsgIn> extends true
-        ? SerMsgIn
-        : SerializedMsgOut
-    : TReturnType;
 
 export interface IFunctionArgsBySerialize<T extends Fn, Args = Parameters<T>, Result = Awaited<ReturnType<T>>>
     extends S.Serializer<Result, Args, Result, unknown> {}
 /**
  * function args is serialize value
  */
-export type ExtractFunctionArgsBySerialize<
+export type ExtractFunctionArgsFnBySerialize<
     TFn extends Fn,
     S extends S.Serializer<never, never>,
     TArgs extends Parameters<TFn> = Parameters<TFn>,
@@ -57,12 +44,25 @@ export type ExtractFunctionArgsBySerialize<
           : // Args will always be array
             TFn
     : TFn;
+export type ExtractFunctionArgsBySerialize<
+    TFn extends Fn,
+    S extends S.Serializer<never, never>,
+    TArgs extends Parameters<TFn> = Parameters<TFn>,
+    TReturnType extends ReturnType<TFn> = ReturnType<TFn>,
+    TResult extends Awaited<TReturnType> = Awaited<TReturnType>,
+    TDefaultSerializer extends S.WithDefault<S, TResult, TArgs> = S.WithDefault<S, TResult, TArgs>,
+> = TDefaultSerializer extends S.Serializer<infer _, infer SerMsgIn, infer _, infer SerializedMsgOut>
+    ? // the type of serialize args is not changed
+      Equal<SerializedMsgOut, SerMsgIn> extends true
+        ? SerMsgIn
+        : SerializedMsgOut
+    : TArgs;
 export interface IFunctionResultByDeserialize<T extends Fn, Args = Parameters<T>, Result = Awaited<ReturnType<T>>>
     extends S.Serializer<Result, Args, unknown, Args> {}
 /**
  * function result is deserialize value
  */
-export type ExtractFunctionResultByDeserialize<
+export type ExtractFunctionResultFnByDeserialize<
     TFn extends Fn,
     S extends S.Serializer<never, never>,
     TArgs extends Parameters<TFn> = Parameters<TFn>,
@@ -83,6 +83,20 @@ export interface IFunctionArgsByDeserialize<T extends Fn, Args = Parameters<T>, 
 /**
  * function args is deserialize value
  */
+export type ExtractFunctionArgsFnByDeSerialize<
+    TFn extends Fn,
+    S extends S.Serializer<never, never>,
+    TArgs extends Parameters<TFn> = Parameters<TFn>,
+    TReturnType extends ReturnType<TFn> = ReturnType<TFn>,
+    TResult extends Awaited<TReturnType> = Awaited<TReturnType>,
+    TDefaultSerializer extends S.WithDefault<S, TArgs, TResult> = S.WithDefault<S, TArgs, TResult>,
+> = TDefaultSerializer extends S.Serializer<infer DeSerMsgIn, infer _, infer DeserializedMsgOut, infer _>
+    ? // the type of deserialize args is not changed
+      Equal<DeserializedMsgOut, DeSerMsgIn> extends true
+        ? DeSerMsgIn
+        : DeserializedMsgOut
+    : TArgs;
+
 export type ExtractFunctionArgsByDeSerialize<
     TFn extends Fn,
     S extends S.Serializer<never, never>,
@@ -99,4 +113,3 @@ export type ExtractFunctionArgsByDeSerialize<
           : // Args will always be array
             TFn
     : TFn;
-

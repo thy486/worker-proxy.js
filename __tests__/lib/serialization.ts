@@ -1,20 +1,24 @@
 export class Foo<T> {
     private readonly value: T;
-  
+
     constructor(value: T) {
         this.value = value;
     }
-  
+
     getValue() {
         return this.value;
     }
 }
 
 export class Bar<T> {
-    private readonly value = new Foo('bar');
+    private readonly value;
     private car: Car<T> | undefined;
-  
-    getFoo() {
+
+    constructor(foo: Foo<T>) {
+        this.value = foo;
+    }
+
+    async getFoo() {
         return this.value;
     }
 
@@ -28,14 +32,14 @@ export class Bar<T> {
 }
 
 export class Car<T> {
-    private readonly value: Bar<T> = new Bar();
+    private readonly value: Bar<T>;
 
-    public constructor() {
+    public constructor(bar: Bar<T>) {
+        this.value = bar;
         this.value.setCar(this);
     }
-  
+
     getBar() {
         return this.value;
     }
 }
-  

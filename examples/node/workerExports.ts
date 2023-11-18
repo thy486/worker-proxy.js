@@ -1,4 +1,4 @@
-import { expose, pointerify, Fn, Class } from '../../src/envs/node/worker';
+import { expose, Fn, Class } from '../../src/envs/node/worker';
 import { MessageChannel, type MessagePort } from 'worker_threads';
 
 export class Bar {
@@ -10,6 +10,7 @@ export class Bar {
 export class Foo {
     private _port!: MessagePort;
     public value2: number = 1;
+    constructor(bar: Bar) {}
 
     public value(): string {
         return 'foo';
@@ -30,7 +31,7 @@ export class Foo {
     }
 
     public static new(): Foo {
-        return new Foo();
+        return new Foo('' as never);
     }
 
     public static channel(): MessagePort {
@@ -49,18 +50,27 @@ function channel(): MessagePort {
 
 const classTable = Class.expose({
     Foo: Class.define(Foo, {
+        construct: {
+            deserialize(message) {
+                return [Class.fromMasterInstance(message[0])] as const;
+            },
+        },
         onFree(instance) {
             return 1;
         },
         instance: {
             bar: {
                 serialize(input) {
-                    return pointerify(Bar, input);
+                    return Class.createPointer(Bar, input);
                 },
             },
         },
     }),
-    Bar,
+    Bar: Class.define(Bar, {
+        onFree(instance) {
+            return 2;
+        },
+    }),
 });
 const functionTable = Fn.expose({
     value,
@@ -68,13 +78,12 @@ const functionTable = Fn.expose({
         transfer(input) {
             return [input];
         },
-    })
+    }),
 });
 const exportsValue = {
     classTable,
     functionTable,
 };
-
 export type ExportsValue = typeof exportsValue;
 expose(exportsValue, {
     onUnhandledRejection(e) {

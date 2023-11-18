@@ -2,7 +2,7 @@ import * as S from '../../serializers';
 import type { Fn } from '../../type';
 import type { Equal } from '../../typeUtils';
 import { EAction, type ICallPlainFunctionData } from '../action';
-import type { TransferableOptions } from '../../transferable';
+import type { ITransferableOptions } from '../../transferable';
 import type * as I from './worker';
 import { type FunctionImpl, createMsgHandle, setProxyDefaultProperty } from './masterShared';
 
@@ -14,7 +14,7 @@ export interface IRuntimeOptions<
     T extends Fn,
     Args = Parameters<T>,
     Result = Awaited<ReturnType<T>>,
-> extends TransferableOptions<TransferableObject, Args>,
+> extends ITransferableOptions<TransferableObject, Args>,
         S.Serializer<Result, Args, unknown, Args> {}
 
 export type ExtractModuleTableSerializerExport<

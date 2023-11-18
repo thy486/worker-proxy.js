@@ -1,17 +1,25 @@
 import type {
     ClassType,
-    ConstructorType,
+    ConstructorFunctionType,
     Fn,
     FunctionTable,
     InstancePropertyTable,
     PromiseOrValue,
     StaticPropertyTable,
 } from '../../type';
-import { type ClassEqualToDefault, type EqualToDefault, type PhantomData, isFunction } from '../../typeUtils';
+import {
+    type ClassEqualToDefault,
+    type EqualToDefault,
+    type PhantomData,
+    isFunction,
+    ExtractPhantomData,
+    Phantom,
+} from '../../typeUtils';
 import type { IClassDefineOptions } from './shared';
 import type * as S from '../../serializers';
 import type * as F from '../fn/master';
-import * as FS from '../fn/masterShared';
+import * as FS from '../fn/shared';
+import * as FWS from '../fn/masterShared';
 import type * as I from './worker';
 import type { ClassImpl } from './masterShared';
 import type { MessageFactory } from '../message/declare';
@@ -22,6 +30,8 @@ import {
     type IConstructData,
     type IFreePtrData,
 } from '../action';
+import { $ORIGIN_TYPE, ClassHelper, WithDefaultClassHelper } from '../../classHelper';
+import { ITransferableOptions } from '../../transferable';
 
 const $POINTER = Symbol('mater::pointer');
 
@@ -35,8 +45,9 @@ export type WorkerPropertyTable<T> = {
         : T[K];
 };
 type ExtractWorkerClass<T extends ClassType = ClassType> = ClassEqualToDefault<
-    WorkerPropertyTable<StaticPropertyTable<T>> &
-        ConstructorType<T, ConstructorParameters<T>, WorkerPropertyTable<InstancePropertyTable<T>>>,
+    WithDefaultClassHelper<T> extends ClassHelper<infer C, infer S, infer Params, infer R>
+        ? ClassHelper<C, WorkerPropertyTable<StaticPropertyTable<S>>, Params, WorkerPropertyTable<R>>
+        : T,
     T
 >;
 
@@ -54,11 +65,13 @@ type IInstanceOptions<
 > = {
     [K in keyof TInstanceFunctionTable]?: F.IRuntimeOptions<TransferableObject, TInstanceFunctionTable[K]>;
 };
-export type IConstructFunctionOption<
+export interface IConstructFunctionOption<
     TransferableObject,
     T extends ClassType,
-    TFn extends Fn = (...args: ConstructorParameters<T>) => InstanceType<T>,
-> = Omit<F.IRuntimeOptions<TransferableObject, TFn>, 'deserialize'>;
+    TFn extends ConstructorFunctionType<T> = ConstructorFunctionType<T>,
+    TArgs extends Parameters<TFn> = Parameters<TFn>,
+> extends Omit<FS.IFunctionArgsBySerialize<TFn, TArgs>, 'deserialize'>,
+        ITransferableOptions<TransferableObject, TArgs> {}
 export type IFunctionOptions<TransferableObject, T extends ClassType> = IClassDefineOptions<
     IStaticOptions<TransferableObject, T>,
     IInstanceOptions<TransferableObject, T>,
@@ -67,7 +80,7 @@ export type IFunctionOptions<TransferableObject, T extends ClassType> = IClassDe
 export interface IDefinedFunctionOptions<TransferableObject = unknown, T extends ClassType = ClassType> {
     static?: Record<keyof FunctionTable<StaticPropertyTable<T>>, F.IRuntimeOptions<TransferableObject, Fn>>;
     instance?: Record<keyof FunctionTable<InstancePropertyTable<T>>, F.IRuntimeOptions<TransferableObject, Fn>>;
-    construct?: IConstructFunctionOption<TransferableObject, T>;
+    construct?: FS.IFunctionArgsBySerialize<Fn>;
 }
 export interface IRuntimeOptions<
     TransferableObject = unknown,
@@ -82,34 +95,18 @@ type ExtractFunctionTableOptionsExport<TFunctionTable extends Record<string | nu
             : TFunctionTable[K]
         : TFunctionTable[K];
 };
-type ExtractClassStaticExport<
+type ExtractModuleTableFunctionOptionsExport<
     T extends ClassType,
-    TOptions extends IClassDefineOptions,
-    TStaticFunctionTable extends FunctionTable<StaticPropertyTable<T>> = FunctionTable<StaticPropertyTable<T>>,
-> = EqualToDefault<ConstructorType<T> & ExtractFunctionTableOptionsExport<TStaticFunctionTable, TOptions['static']>, T>;
-
-type ExtractClassInstanceExport<
-    T extends ClassType,
-    TOptions extends IClassDefineOptions,
-    TInstanceFunctionTable extends InstancePropertyTable<T> = InstancePropertyTable<T>,
-> = EqualToDefault<
-    StaticPropertyTable<T> &
-        ConstructorType<
-            T,
-            ConstructorParameters<T>,
-            ExtractFunctionTableOptionsExport<TInstanceFunctionTable, TOptions['instance']>
-        >,
-    T
->;
-
-type ExtractModuleTableFunctionOptionsExport<T extends ClassType, TOptions> = TOptions extends IDefinedFunctionOptions
-    ? ExtractClassStaticExport<ExtractClassInstanceExport<T, TOptions>, TOptions>
-    : T;
-
-type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = ExtractModuleTableFunctionOptionsExport<
+    TOptions extends IDefinedFunctionOptions,
+> = ClassHelper<
     T,
-    TOptions
+    ExtractFunctionTableOptionsExport<FunctionTable<StaticPropertyTable<T>>, TOptions['static']>,
+    TOptions['construct'] extends undefined
+        ? unknown[]
+        : FS.ExtractFunctionArgsBySerialize<ConstructorFunctionType<T>, NonNullable<TOptions['construct']>>,
+    ExtractFunctionTableOptionsExport<InstanceType<T>, TOptions['instance']>
 >;
+
 type DefinedFunctionSpawn<
     T extends I.ExposedModuleTable = I.ExposedModuleTable,
     TOptions extends DefineClassSpawnOptions<T> = DefineClassSpawnOptions<T>,
@@ -117,18 +114,17 @@ type DefinedFunctionSpawn<
     [K in keyof T]: ExtractWorkerClass<
         K extends keyof TOptions
             ? TOptions[K] extends IDefinedFunctionOptions
-                ? ExtractModuleTableOptionsExport<T[K]['ctor'], TOptions[K]>
+                ? ExtractModuleTableFunctionOptionsExport<T[K]['ctor'], TOptions[K]>
                 : T[K]['ctor']
             : T[K]['ctor']
     >;
 };
-export type DefineClassSpawnOptions<T extends I.ExposedModuleTable = I.ExposedModuleTable> = T extends I.ExposedModuleTable<
-    infer TransferableObject
->
-    ? {
-          readonly [K in keyof T]?: IRuntimeOptions<TransferableObject, T[K]['ctor']>;
-      }
-    : never;
+export type DefineClassSpawnOptions<T extends I.ExposedModuleTable = I.ExposedModuleTable> =
+    T extends I.ExposedModuleTable<infer TransferableObject>
+        ? {
+              readonly [K in keyof T]?: IRuntimeOptions<TransferableObject, T[K]['ctor']>;
+          }
+        : never;
 
 export type CreateClassSpawn<
     TransferableObject = unknown,
@@ -158,7 +154,7 @@ const _createPointerSpawn = (
     const pointerInstance: IPointerInstance = {
         [$POINTER]: pointer,
     };
-    FS.setProxyDefaultProperty(pointerInstance);
+    FWS.setProxyDefaultProperty(pointerInstance);
 
     return new Proxy(pointerInstance as unknown as Record<string, Fn>, {
         get(target, p: string) {
@@ -168,7 +164,7 @@ const _createPointerSpawn = (
             if (p in target) {
                 return target[p];
             }
-            const msgHandle = FS.createMsgHandle(
+            const msgHandle = FWS.createMsgHandle(
                 msg,
                 async (args) =>
                     ({
@@ -187,8 +183,9 @@ const _createPointerSpawn = (
 };
 
 const createCtorSpawn = (msg: MessageFactory, ns: string, ctorKey: string, options: IRuntimeOptions = {}) => {
-    const workerClassProxy = function () {} as unknown as Record<string, Fn> & ClassType;
-    FS.setProxyDefaultProperty(workerClassProxy);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const workerClassProxy = function () {} as any;
+    FWS.setProxyDefaultProperty(workerClassProxy);
     return new Proxy(workerClassProxy, {
         // static function
         get(target, p: string) {
@@ -196,7 +193,7 @@ const createCtorSpawn = (msg: MessageFactory, ns: string, ctorKey: string, optio
                 return target[p];
             }
 
-            const msgHandle = FS.createMsgHandle(
+            const msgHandle = FWS.createMsgHandle(
                 msg,
                 (args) =>
                     ({
@@ -228,7 +225,7 @@ const createCtorSpawn = (msg: MessageFactory, ns: string, ctorKey: string, optio
                     transferItems = options.construct.transfer(argArray);
                 }
                 if (isFunction(options.construct.serialize)) {
-                    pointer = createPointer(options.construct.serialize(argArray));
+                    pointer = createPointer(options.construct.serialize(argArray) as unknown[]);
                 }
             }
             if (!pointer) {
@@ -241,7 +238,7 @@ const createCtorSpawn = (msg: MessageFactory, ns: string, ctorKey: string, optio
 
 export const createClassSpawn: ClassImpl<unknown, CreateClassSpawn> = (msg, context, ns, options = {}) => {
     const result = {} as DefinedFunctionSpawn;
-    FS.setProxyDefaultProperty(result);
+    FWS.setProxyDefaultProperty(result);
     context.GLOBAL_CLASS_OPTION_STORE[ns as string] = options;
     return new Proxy(result, {
         get(target, p: string) {
@@ -274,8 +271,8 @@ export type Free<
 ) => Promise<TInstance extends PhantomData<typeof I.$FREE_TYPE, infer PhantomType> ? PhantomType | false : boolean>;
 
 export const free: ClassImpl<unknown, Free> = async (msg, _context, instance) => {
-    if ((instance as IPointerInstance)[$POINTER]) {
-        const ptr = await (instance as IPointerInstance)[$POINTER]!;
+    if ((instance as unknown as IPointerInstance)[$POINTER]) {
+        const ptr = await (instance as unknown as IPointerInstance)[$POINTER]!;
         const actionData: IFreePtrData = {
             type: EAction.FREE,
             ptr,
@@ -283,7 +280,7 @@ export const free: ClassImpl<unknown, Free> = async (msg, _context, instance) =>
         try {
             return await msg(actionData);
         } finally {
-            (instance as IPointerInstance)[$POINTER] = null;
+            (instance as unknown as IPointerInstance)[$POINTER] = null;
         }
     }
     return false;
@@ -301,11 +298,53 @@ export type CreatePointerSpawn<
     TKeys extends keyof Table = keyof Table,
     TCtor extends Table[TKeys]['ctor'] = Table[TKeys]['ctor'],
     TInstance extends InstanceType<TCtor> = InstanceType<TCtor>,
+    TOriginInstance extends InstanceType<
+        ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor> extends ClassType
+            ? ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor>
+            : TCtor
+    > = InstanceType<
+        ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor> extends ClassType
+            ? ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor>
+            : TCtor
+    >,
 >(
     ns: Ns,
     ctorKey: TKeys,
-    pointer: I.IPointer<TInstance>,
+    pointer: TOriginInstance,
 ) => EqualToDefault<WorkerPropertyTable<TInstance>, TInstance>;
+export type SerializeToPointer<
+    TransferableObject = unknown,
+    T extends Record<string, I.ExposedModuleTable<TransferableObject>> = Record<
+        string,
+        I.ExposedModuleTable<TransferableObject>
+    >,
+> = <
+    Ns extends keyof T = keyof T,
+    Table extends T[Ns] = T[Ns],
+    TKeys extends keyof Table = keyof Table,
+    TCtor extends Table[TKeys]['ctor'] = Table[TKeys]['ctor'],
+    TInstance extends InstanceType<TCtor> = InstanceType<TCtor>,
+    TOriginInstance extends InstanceType<
+        ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor> extends ClassType
+            ? ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor>
+            : TCtor
+    > = InstanceType<
+        ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor> extends ClassType
+            ? ExtractPhantomData<InstanceType<TCtor>, typeof $ORIGIN_TYPE, TCtor>
+            : TCtor
+    >,
+>(
+    ns: Ns,
+    ctorKey: TKeys,
+    instance: Phantom<TOriginInstance, typeof I.$MASTER_INSTANCE_TYPE, true>,
+) => Promise<EqualToDefault<WorkerPropertyTable<TInstance>, TInstance>>;
+export const serializeToPointer: SerializeToPointer = (_ns, _ctorKey, instance) => {
+    if (!(instance as unknown as IPointerInstance)?.[$POINTER]) {
+        throw new ReferenceError('Not a worker instance type');
+    }
+    return (instance as unknown as IPointerInstance)[$POINTER] as never;
+};
+
 export const createPointerSpawn: ClassImpl<unknown, CreatePointerSpawn> = (msg, context, ns, ctorKey, pointer) => {
     const options = context.GLOBAL_CLASS_OPTION_STORE[ns as string]?.[ctorKey as string] ?? {};
 

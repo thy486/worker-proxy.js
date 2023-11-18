@@ -1,24 +1,23 @@
 import type {
     ClassType,
     ConstructorFunctionType,
-    ConstructorType,
-    ConstructorTypeCustom,
     Fn,
     FunctionTable,
-    FunctionToConstructorType,
-    InstancePropertyTable,
+    PromiseOrValue,
     StaticPropertyTable,
 } from '../../type';
-import { type Equal, type PhantomData, type PhantomType, isFunction, type ClassEqualToDefault } from '../../typeUtils';
+import { type PhantomData, type Phantom, isFunction, Equal } from '../../typeUtils';
 import type * as F from '../fn/worker';
 import * as FWS from '../fn/workerShared';
 import * as FS from '../fn/shared';
 import type * as CS from './workerShared';
 import type { IClassDefineOptions } from './shared';
+import type { $ORIGIN_TYPE, ClassHelper } from '../../classHelper';
 
 const $CLASS_DEFINE = Symbol('class::define');
 export declare const $FREE_TYPE: unique symbol;
 export declare const $POINTER_TYPE: unique symbol;
+export declare const $MASTER_INSTANCE_TYPE: unique symbol;
 let scopeId = 0;
 const scopes = new Map<number, PtrScope>();
 const registerTypeMap: WeakMap<object, number> = new WeakMap();
@@ -29,7 +28,7 @@ export interface IPointer<T = unknown> {
     rawType: number;
 }
 interface IFreeOptions<T extends ClassType, TCallbackType = unknown> {
-    onFree?: (instance: InstanceType<T>) => TCallbackType;
+    onFree?: (instance: InstanceType<T>) => PromiseOrValue<TCallbackType>;
 }
 type IStaticOptions<
     TransferableObject,
@@ -41,7 +40,7 @@ type IStaticOptions<
 type IInstanceOptions<
     TransferableObject,
     T extends ClassType,
-    TInstanceFunctionTable extends FunctionTable<InstancePropertyTable<T>> = FunctionTable<InstancePropertyTable<T>>,
+    TInstanceFunctionTable extends FunctionTable<InstanceType<T>> = FunctionTable<InstanceType<T>>,
 > = {
     [K in keyof TInstanceFunctionTable]?: F.IRuntimeOptions<TransferableObject, TInstanceFunctionTable[K]>;
 };
@@ -60,8 +59,8 @@ export type IDefinedFunctionOptions<
     T extends ClassType = ClassType,
 > = IClassDefineOptions<
     Record<keyof FunctionTable<StaticPropertyTable<T>>, F.IRuntimeOptions<TransferableObject, Fn>>,
-    Record<keyof FunctionTable<InstancePropertyTable<T>>, F.IRuntimeOptions<TransferableObject, Fn>>,
-    F.IRuntimeOptions<TransferableObject, Fn>
+    Record<keyof FunctionTable<InstanceType<T>>, F.IRuntimeOptions<TransferableObject, Fn>>,
+    FS.IFunctionArgsByDeserialize<Fn>
 >;
 export interface IRuntimeOptions<
     TransferableObject = unknown,
@@ -94,7 +93,7 @@ interface IResolvedDefinedModuleTableExport<
     options?: TOptions;
 }
 
-export type ModuleTableExport<TransferableObject, T extends ClassType> =
+export type ModuleTableExport<TransferableObject = unknown, T extends ClassType = ClassType> =
     | T
     | IDefinedModuleTableExport<TransferableObject, T, IRuntimeOptions<TransferableObject, T>>;
 
@@ -106,16 +105,6 @@ export type DefineModuleTableExport<TransferableObject = unknown> = <
     options?: TOptions,
 ) => IDefinedModuleTableExport<TransferableObject, T, TOptions>;
 
-type MergeInstanceType<T extends ClassType, MergeValue> = T & ConstructorTypeCustom<unknown[], MergeValue>;
-type ExtractModuleTableFreeOptionsExport<T extends ClassType, TOptions> = TOptions extends IFreeOptions<
-    never,
-    infer Result
->
-    ? Equal<Result, unknown> extends true
-        ? T
-        : MergeInstanceType<T, PhantomType<InstanceType<T>, typeof $FREE_TYPE, Result>>
-    : T;
-
 type ExtractFunctionTableOptionsExport<TPropertyTable, TOptions> = {
     [K in keyof TPropertyTable]: TPropertyTable[K] extends Fn
         ? K extends keyof TOptions
@@ -123,47 +112,33 @@ type ExtractFunctionTableOptionsExport<TPropertyTable, TOptions> = {
             : TPropertyTable[K]
         : TPropertyTable[K];
 };
-type ExtractClassStaticExport<
+
+type ExtractModuleTableFunctionOptionsExport<
     T extends ClassType,
-    TOptions extends IClassDefineOptions,
-    TStaticPropertyTable extends StaticPropertyTable<T> = StaticPropertyTable<T>,
-> = ClassEqualToDefault<
-    ConstructorType<T> & ExtractFunctionTableOptionsExport<TStaticPropertyTable, TOptions['static']>,
-    T
+    TOptions extends IDefinedFunctionOptions,
+    TFreeCallback = unknown,
+> = ClassHelper<
+    T,
+    ExtractFunctionTableOptionsExport<StaticPropertyTable<T>, TOptions['static']>,
+    TOptions['construct'] extends undefined
+        ? unknown[]
+        : FS.ExtractFunctionArgsFnByDeSerialize<ConstructorFunctionType<T>, NonNullable<TOptions['construct']>>,
+    Equal<TFreeCallback, unknown> extends true
+        ? ExtractFunctionTableOptionsExport<InstanceType<T>, TOptions['instance']>
+        : Phantom<
+              ExtractFunctionTableOptionsExport<InstanceType<T>, TOptions['instance']>,
+              typeof $FREE_TYPE,
+              TFreeCallback
+          >
 >;
 
-type ExtractClassInstanceExport<
-    T extends ClassType,
-    TOptions extends IClassDefineOptions,
-    TInstanceFunctionTable extends InstancePropertyTable<T> = InstancePropertyTable<T>,
-> = ClassEqualToDefault<
-    StaticPropertyTable<T> &
-        ConstructorType<
-            T,
-            ConstructorParameters<T>,
-            ExtractFunctionTableOptionsExport<TInstanceFunctionTable, TOptions['instance']>
-        >,
-    T
->;
-
-type ExtractClassConstructExport<
-    T extends ClassType,
-    TOptions extends IClassDefineOptions,
-    TConstructFunction extends ConstructorFunctionType<T> = ConstructorFunctionType<T>,
-> = ClassEqualToDefault<
-    StaticPropertyTable<T> &
-        FunctionToConstructorType<F.ExtractModuleTableOptionsExport<TConstructFunction, TOptions['construct']>>,
-    T
->;
-
-type ExtractModuleTableFunctionOptionsExport<T extends ClassType, TOptions> = TOptions extends IDefinedFunctionOptions
-    ? ExtractClassStaticExport<ExtractClassInstanceExport<ExtractClassConstructExport<T, TOptions>, TOptions>, TOptions>
-    : T;
-
-type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = ExtractModuleTableFreeOptionsExport<
-    ExtractModuleTableFunctionOptionsExport<T, TOptions>,
-    TOptions
->;
+type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = TOptions extends IFreeOptions<never, infer Result>
+    ? TOptions extends IDefinedFunctionOptions
+        ? ExtractModuleTableFunctionOptionsExport<T, TOptions, Result>
+        : ClassHelper<T, unknown, unknown[], Phantom<InstanceType<T>, typeof $FREE_TYPE, Result>>
+    : TOptions extends IDefinedFunctionOptions
+      ? ExtractModuleTableFunctionOptionsExport<T, TOptions>
+      : T;
 
 export interface ExposedModuleTableItem<
     TransferableObject = unknown,
@@ -181,14 +156,14 @@ export type ExposedModuleTable<
         ModuleTableExport<TransferableObject, ClassType>
     >,
 > = {
-    [K in keyof T]: T[K] extends ModuleTableExport<TransferableObject, infer TClassType>
-        ? T[K] extends IResolvedDefinedModuleTableExport<TransferableObject, infer _, infer TOptions>
+    [K in keyof T]: T[K] extends ModuleTableExport<TransferableObject, infer TPlainClassType>
+        ? T[K] extends IResolvedDefinedModuleTableExport<TransferableObject, infer TClassType, infer TOptions>
             ? ExposedModuleTableItem<
                   TransferableObject,
                   ExtractModuleTableOptionsExport<TClassType, TOptions>,
                   TOptions
               >
-            : ExposedModuleTableItem<TransferableObject, TClassType, NonNullable<unknown>>
+            : ExposedModuleTableItem<TransferableObject, TPlainClassType, NonNullable<unknown>>
         : never;
 };
 
@@ -202,7 +177,7 @@ class PtrScope<
     TransferableObject = unknown,
     T extends ClassType = ClassType,
     TOptions extends IClassDefineOptions = IRuntimeOptions<TransferableObject, T>,
-    TProxy= CS.ExtractProxyFromOptions<TransferableObject, T, TOptions>,
+    TProxy = CS.ExtractProxyFromOptions<TransferableObject, T, TOptions>,
     TInstance = InstanceType<T>,
 > {
     private _instancePtr: number = 0;
@@ -234,7 +209,7 @@ class PtrScope<
             this._proxy.instance = FWS.createProxyTable(options.instance) as CS.ClassInstanceExportProxy<
                 TransferableObject,
                 T,
-                FunctionTable<InstancePropertyTable<T>>
+                FunctionTable<InstanceType<T>>
             >;
         }
         if (options.construct && isFunction((options as IRuntimeOptions).construct!.deserialize)) {
@@ -310,7 +285,7 @@ export const getScopeById = <T extends ClassType>(typeId: number): PtrScope<T> |
 export const createPointer = <T extends ClassType, TInstance extends InstanceType<T> = InstanceType<T>>(
     ctor: T,
     instance: TInstance,
-): IPointer<TInstance> => {
+): Phantom<Phantom<TInstance, typeof $FREE_TYPE, never>, typeof $ORIGIN_TYPE, T> => {
     const typeId = getTypeId(ctor);
     if (typeId === null) {
         throw new Error(`Type of class ${ctor.name} was not been registered!`);
@@ -322,16 +297,12 @@ export const createPointer = <T extends ClassType, TInstance extends InstanceTyp
     return {
         rawType: typeId,
         rawPtr: scope.allocPtr(instance),
-    } as IPointer<TInstance>;
+    } as IPointer<TInstance> as unknown as TInstance;
 };
 
-export const fromPointer = <
-    T extends ClassType,
-    TInstance extends InstanceType<T> = InstanceType<T>,
-    TPointer extends IPointer<TInstance> = IPointer<TInstance>,
->(
-    value: TPointer,
-): TInstance => {
+export const fromMasterInstance = <T extends ClassType, TInstance extends InstanceType<T> = InstanceType<T>>(
+    value: TInstance,
+): Phantom<TInstance, typeof $MASTER_INSTANCE_TYPE, true> => {
     const scope = getScopeById(value.rawType);
     if (scope === null) {
         throw new ReferenceError(`Pointer type(${value.rawType}) is not exposed.`);

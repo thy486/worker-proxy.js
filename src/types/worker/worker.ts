@@ -91,9 +91,9 @@ export const defineWorkerExpose: UnshiftArgs<DefineWorkerExpose, [workerImpl: Wo
                             throw new ReferenceError(`Pointer is not existed`);
                         }
                         if (!instance[data.fnName]) {
-                            throw new TypeError(`(intermediate value).${data.fnName} is not a function`);
+                            throw new TypeError(`(intermediate value).${data.fnName as string} is not a function`);
                         }
-                        const functionProxy = scope.proxy.instance?.[data.fnName];
+                        const functionProxy = scope.proxy.instance?.[data.fnName as string];
                         if (functionProxy) {
                             const [result, transferItemList] = await functionProxy((...args: unknown[]) =>
                                 instance[data.fnName](...args),

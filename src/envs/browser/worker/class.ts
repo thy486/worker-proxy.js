@@ -5,7 +5,7 @@ import {
     expose as exposeCommon,
 } from '../../../types/class/worker';
 
-export { createPointer as pointerify, fromPointer as serializePointer, type IPointer } from '../../../types/class/worker';
+export { createPointer, fromMasterInstance, type IPointer } from '../../../types/class/worker';
 
 export const define = defineCommon as DefineModuleTableExport<Transferable>;
 
