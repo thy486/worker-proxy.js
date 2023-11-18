@@ -29,10 +29,9 @@ export default defineConfig({
             insertTypesEntry: true,
         }),
     ],
-    root: 'src',
     build: {
         lib: {
-            entry: ['envs/browser/index.ts', 'envs/node/index.ts'],
+            entry: ['src/envs/browser/index.ts', 'src/envs/node/index.ts'],
             formats: ['es', 'cjs'],
         },
         rollupOptions: {

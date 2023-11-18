@@ -174,9 +174,9 @@ out
 .DS_Store
 node_modules
 
-src
-examples
-__tests__
+/src
+/examples
+/__tests__
 .eslintrc
 .eslintignore
 .prettierrc
