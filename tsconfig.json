@@ -16,7 +16,6 @@
     "esModuleInterop": true,
     "allowJs": true,
     "outDir": "app",
-    "baseUrl": ".",
     "types": [
       "vite/client",
       "bun-types" // add Bun global

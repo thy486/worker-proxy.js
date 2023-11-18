@@ -1,11 +1,12 @@
+import { PromiseOrValue } from './type';
 import type { Equal } from './typeUtils';
 
-export interface Serializer<MsgIn, MsgOut, DeserializedMsgIn = unknown, SerializedMsgOut = unknown> {
-    deserialize?: (message: MsgIn) => DeserializedMsgIn;
-    serialize?: (input: MsgOut) => SerializedMsgOut;
+export interface Serializer<DeSerMsgIn = never, SerMsgIn = never, DeserializedMsgOut = unknown, SerializedMsgOut = unknown> {
+    deserialize?: (message: DeSerMsgIn) => PromiseOrValue<DeserializedMsgOut>;
+    serialize?: (input: SerMsgIn) => PromiseOrValue<SerializedMsgOut>;
 }
 
-type DefaultWithSerializerInstance<T extends Serializer<any, any>, DefaultMsgIn, DefaultMsgOut> = T extends Serializer<
+type DefaultWithSerializerInstance<T, DefaultMsgIn, DefaultMsgOut> = T extends Serializer<
     infer MsgIn,
     infer MsgOut,
     infer DeserializedMsgIn,
@@ -18,9 +19,9 @@ type DefaultWithSerializerInstance<T extends Serializer<any, any>, DefaultMsgIn,
         : Equal<MsgOut, unknown> extends true
           ? Serializer<DefaultMsgIn, DefaultMsgOut, DeserializedMsgIn, SerializedMsgOut>
           : Serializer<MsgIn, MsgOut, DeserializedMsgIn, SerializedMsgOut>
-    : never;
+    : T;
 
-type DefaultSerializer<T extends Serializer<any, any, any, any>> = T extends Serializer<
+type DefaultSerializer<T> = T extends Serializer<
     infer MsgIn,
     infer MsgOut,
     infer DeserializedMsgIn,
@@ -35,8 +36,6 @@ type DefaultSerializer<T extends Serializer<any, any, any, any>> = T extends Ser
         : Equal<SerializedMsgOut, unknown> extends true
           ? Serializer<MsgIn, MsgOut, DeserializedMsgIn, MsgOut>
           : Serializer<MsgIn, MsgOut, DeserializedMsgIn, SerializedMsgOut>
-    : never;
+    : T;
 
-export type WithDefault<S extends Serializer<any, any>, MsgIn, MsgOut> = DefaultSerializer<
-    DefaultWithSerializerInstance<S, MsgIn, MsgOut>
->;
+export type WithDefault<S, MsgIn, MsgOut> = DefaultSerializer<DefaultWithSerializerInstance<S, MsgIn, MsgOut>>;

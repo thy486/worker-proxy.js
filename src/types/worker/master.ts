@@ -9,7 +9,7 @@ import {
     free,
 } from '../class/master';
 import { type CreateFunctionSpawn, createFunctionSpawn } from '../fn/master';
-import { type Promisable } from '../../type';
+import { type PromiseOrValue } from '../../type';
 import { type UnshiftArgs, isFunction, mergeVoidFunction } from '../../typeUtils';
 import type { IClassContext } from '../class/masterShared';
 import type { IMasterRuntime, UnsubscribeFn } from './declare';
@@ -18,11 +18,11 @@ import type { MessageFactory } from '../message/declare';
 
 export interface IMasterInitOptions {
     onExit?: (exitCode?: number) => void;
-    handleError?: <T>(e: any) => T;
+    handleError?: <T>(e: unknown) => T;
 }
 
 export interface IMasterRuntimeOptions {
-    handleError?: <T>(e: any) => T;
+    handleError?: <T>(e: unknown) => T;
 }
 export interface IWorkerOptions extends IMasterInitOptions, IMasterRuntimeOptions {}
 interface IMasterSpawnRuntime<
@@ -31,7 +31,7 @@ interface IMasterSpawnRuntime<
         string,
         C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>
     > = Record<string, C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>>,
-    TFunctionSpawn extends Record<string, F.ExposedModuleTable<TransferableObject, any>> = {
+    TFunctionSpawn extends Record<string, F.ExposedModuleTable<TransferableObject>> = {
         [K in keyof T as T[K] extends F.ExposedModuleTable<TransferableObject>
             ? K
             : never]: T[K] extends F.ExposedModuleTable<TransferableObject> ? T[K] : never;
@@ -48,12 +48,12 @@ interface IMasterSpawnRuntime<
     free: Free<TransferableObject, TClassSpawn>;
 }
 
-export type MasterImplementation<TransferableObject, T> = (
-    worker: T,
+export type MasterImplementation<TransferableObject = unknown, TWorker = unknown> = (
+    worker: TWorker,
     options: IMasterInitOptions,
-) => Promisable<IMasterRuntime<TransferableObject>>;
+) => PromiseOrValue<IMasterRuntime<TransferableObject>>;
 
-export type CreateMasterSpawn<TransferableObject, TWorker> = <
+export type CreateMasterSpawn<TransferableObject = unknown, TWorker = unknown> = <
     T extends Record<string, C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>>,
 >(
     worker: TWorker,
@@ -61,10 +61,11 @@ export type CreateMasterSpawn<TransferableObject, TWorker> = <
 ) => Promise<IMasterSpawnRuntime<TransferableObject, T>>;
 
 let unsubscribeFn!: UnsubscribeFn | undefined;
-export const createMasterSpawn: UnshiftArgs<
-    CreateMasterSpawn<any, any>,
-    [masterImpl: MasterImplementation<any, any>]
-> = async (masterImpl, worker, options = {}) => {
+export const createMasterSpawn: UnshiftArgs<CreateMasterSpawn, [masterImpl: MasterImplementation]> = async (
+    masterImpl,
+    worker,
+    options = {},
+) => {
     if (unsubscribeFn) {
         unsubscribeFn();
         unsubscribeFn = undefined;
@@ -72,10 +73,10 @@ export const createMasterSpawn: UnshiftArgs<
     const runtime = await masterImpl(worker, options);
     let callerId = 0;
     const freedId: number[] = [];
-    const resolvers = new Map<number, (value: any) => void>();
-    const rejecters = new Map<number, (reason: any) => void>();
+    const resolvers = new Map<number, (value: unknown) => void>();
+    const rejecters = new Map<number, (reason: unknown) => void>();
     const finallyTasks: Array<() => void> = [];
-    const wrapError = isFunction(options.handleError) ? (e: any): any => options.handleError!(e) : <T>(e: T): T => e;
+    const wrapError = isFunction(options.handleError) ? (e: unknown) => options.handleError!(e) : <T>(e: T): T => e;
     const execFinalTasks = (): void => {
         for (const task of finallyTasks) {
             try {
@@ -86,7 +87,7 @@ export const createMasterSpawn: UnshiftArgs<
         }
         finallyTasks.length = 0;
     };
-    const handleError = (err: any): void => {
+    const handleError = (err: unknown): void => {
         for (const rejecter of rejecters.values()) {
             rejecter(wrapError(err));
         }
@@ -94,29 +95,29 @@ export const createMasterSpawn: UnshiftArgs<
     };
     unsubscribeFn = runtime.subscribeToWorkerMessages((data) => {
         switch (data.type) {
-        case EMessageResponseType.CALLBACK: {
-            const id = data.id;
-            const resolver = resolvers.get(id);
-            const rejecter = rejecters.get(id);
+            case EMessageResponseType.CALLBACK: {
+                const id = data.id;
+                const resolver = resolvers.get(id);
+                const rejecter = rejecters.get(id);
 
-            if (resolver && rejecter) {
-                if (data.success) {
-                    resolver(data.data);
-                    execFinalTasks();
-                    return;
+                if (resolver && rejecter) {
+                    if (data.success) {
+                        resolver(data.data);
+                        execFinalTasks();
+                        return;
+                    }
+                    rejecter(wrapError(data.error));
                 }
-                rejecter(wrapError(data.error));
+                // worker terminal
+                else {
+                    console.error('Worker is been stoped!');
+                }
+                execFinalTasks();
+                break;
             }
-            // worker terminal
-            else {
-                console.error('Worker is been stoped!');
+            case EMessageResponseType.EVENT: {
+                throw new Error('Event function is not supported now');
             }
-            execFinalTasks();
-            break;
-        }
-        case EMessageResponseType.EVENT: {
-            throw new Error('Event function is not supported now');
-        }
         }
     });
     unsubscribeFn = mergeVoidFunction(unsubscribeFn, runtime.subscribeToWorkerError(handleError));
@@ -131,7 +132,7 @@ export const createMasterSpawn: UnshiftArgs<
     } else {
         unsubscribeFn = mergeVoidFunction(unsubscribeFn, runtime.subscribeToWorkerClose(handleError));
     }
-    const msgSender: MessageFactory<any> = (value, transferList) => {
+    const msgSender: MessageFactory = ((value, transferList) => {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         let _callId: number;
         if (freedId.length > 0) {
@@ -147,7 +148,7 @@ export const createMasterSpawn: UnshiftArgs<
             resolvers.delete(_callId);
             freedId.push(_callId);
         };
-        const result = new Promise<any>((resolve, reject) => {
+        const result = new Promise<unknown>((resolve, reject) => {
             resolvers.set(_callId, resolve);
             rejecters.set(_callId, reject);
 
@@ -161,13 +162,12 @@ export const createMasterSpawn: UnshiftArgs<
         });
         result.then(deferTask, deferTask);
         return result;
-    };
+    }) as MessageFactory;
     const classContext: IClassContext = { GLOBAL_CLASS_OPTION_STORE: {} };
     return {
-        spawnClass: (ns, options) => createClassSpawn(msgSender, classContext, ns, options) as any,
-        spawnFunction: (ns, options) => createFunctionSpawn(msgSender, ns, options as any) as any,
-        deserializePointer: (ns, ctorKey, pointer) =>
-            createPointerSpawn(msgSender, classContext, ns, ctorKey, pointer as any) as any,
-        free: (instance) => free(msgSender, classContext, instance as any) as any,
-    };
+        spawnClass: (ns, options) => createClassSpawn(msgSender, classContext, ns, options),
+        spawnFunction: (ns, options) => createFunctionSpawn(msgSender, ns, options),
+        deserializePointer: (ns, ctorKey, pointer) => createPointerSpawn(msgSender, classContext, ns, ctorKey, pointer),
+        free: (instance) => free(msgSender, classContext, instance as never),
+    } as IMasterSpawnRuntime<unknown, Record<string, C.ExposedModuleTable<unknown> | F.ExposedModuleTable<unknown>>>;
 };

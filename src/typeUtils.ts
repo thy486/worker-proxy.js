@@ -4,7 +4,7 @@ export type Prettify<T> = NonNullable<{
     [K in keyof T as T[K] extends never ? never : K]: T[K];
 }>;
 
-export type UnshiftArgs<T extends (...args: any) => any, TArgs extends any[]> = (
+export type UnshiftArgs<T extends Fn, TArgs extends unknown[]> = (
     ...args: [...TArgs, ...args: Parameters<T>]
 ) => ReturnType<T>;
 

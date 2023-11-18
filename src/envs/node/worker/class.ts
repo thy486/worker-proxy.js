@@ -14,4 +14,4 @@ export {
 
 export const define: DefineModuleTableExport<TransferListItem> = defineCommon;
 
-export const expose: ExposeModuleTable<TransferListItem> = exposeCommon;
+export const expose: ExposeModuleTable<TransferListItem> = exposeCommon as ExposeModuleTable<TransferListItem>;

@@ -4,10 +4,9 @@ import type { Equal } from '../../typeUtils';
 import { EAction, type ICallPlainFunctionData } from '../action';
 import type { TransferableOptions } from '../../transferable';
 import type * as I from './worker';
-import { type FunctionImpl, createMsgHandle } from './masterShared';
-import { setProxyDefaultProperty } from './shared';
+import { type FunctionImpl, createMsgHandle, setProxyDefaultProperty } from './masterShared';
 
-export type ExtractWorkerFunction<T extends Fn> = ReturnType<T> extends Promise<any>
+export type ExtractWorkerFunction<T extends Fn = Fn> = ReturnType<T> extends Promise<unknown>
     ? T
     : (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>;
 export interface IRuntimeOptions<
@@ -20,7 +19,7 @@ export interface IRuntimeOptions<
 
 export type ExtractModuleTableSerializerExport<
     TFn extends Fn,
-    S extends S.Serializer<any, any>,
+    S extends S.Serializer,
     TArgs extends Parameters<TFn> = Parameters<TFn>,
     TReturnType extends ReturnType<TFn> = ReturnType<TFn>,
     TResult extends Awaited<TReturnType> = Awaited<TReturnType>,
@@ -28,27 +27,26 @@ export type ExtractModuleTableSerializerExport<
 > = TDefaultSerializer extends S.Serializer<infer MsgIn, infer MsgOut, infer DeMegIn, infer _>
     ? Equal<DeMegIn, MsgIn> extends true
         ? TFn
-        : MsgOut extends any[]
+        : MsgOut extends unknown[]
           ? (...args: MsgOut) => Promise<DeMegIn>
           : // Args will always be array
             TFn
     : TFn;
 type DefinedFunctionSpawn<
-    T extends I.ExposedModuleTable<any, any>,
+    T extends I.ExposedModuleTable = I.ExposedModuleTable,
     TOptions extends DefineFunctionSpawnOptions<T> = DefineFunctionSpawnOptions<T>,
 > = {
     [K in keyof T]: ExtractWorkerFunction<
         K extends keyof TOptions
-            ? TOptions[K] extends S.Serializer<any, any>
+            ? TOptions[K] extends S.Serializer
                 ? ExtractModuleTableSerializerExport<T[K]['value'], TOptions[K]>
                 : T[K]['value']
             : T[K]['value']
     >;
 };
 
-export type DefineFunctionSpawnOptions<T extends I.ExposedModuleTable<any, any>> = T extends I.ExposedModuleTable<
-    infer TransferableObject,
-    any
+export type DefineFunctionSpawnOptions<T extends I.ExposedModuleTable> = T extends I.ExposedModuleTable<
+    infer TransferableObject
 >
     ? {
           readonly [K in keyof T]?: IRuntimeOptions<TransferableObject, T[K]['value']>;
@@ -56,8 +54,11 @@ export type DefineFunctionSpawnOptions<T extends I.ExposedModuleTable<any, any>>
     : never;
 
 export type CreateFunctionSpawn<
-    TransferableObject,
-    T extends Record<string, I.ExposedModuleTable<TransferableObject, any>>,
+    TransferableObject = unknown,
+    T extends Record<string, I.ExposedModuleTable<TransferableObject>> = Record<
+        string,
+        I.ExposedModuleTable<TransferableObject>
+    >,
 > = <
     Ns extends keyof T = keyof T,
     Table extends T[Ns] = T[Ns],
@@ -67,12 +68,12 @@ export type CreateFunctionSpawn<
     options?: TOptions,
 ) => DefinedFunctionSpawn<Table, TOptions>;
 
-export const createFunctionSpawn: FunctionImpl<any, CreateFunctionSpawn<any, any>> = (msg, ns, options = {}) => {
-    const result = {} as DefinedFunctionSpawn<any>;
+export const createFunctionSpawn: FunctionImpl<unknown, CreateFunctionSpawn> = (msg, ns, options) => {
+    const result = {} as DefinedFunctionSpawn;
     setProxyDefaultProperty(result);
     return new Proxy(result, {
         get: (target, p) => {
-            const key = p as any;
+            const key = p as string;
             if (target[key]) {
                 return target[key];
             }
@@ -85,10 +86,10 @@ export const createFunctionSpawn: FunctionImpl<any, CreateFunctionSpawn<any, any
                         fnName: key,
                         args,
                         ns: ns as string,
-                    }) as ICallPlainFunctionData<any>,
-                options[p as string],
+                    }) as ICallPlainFunctionData,
+                (options ?? {})[p as string],
             );
-            target[key] = msgHandle;
+            target[key] = msgHandle as never;
             return msgHandle;
         },
     });

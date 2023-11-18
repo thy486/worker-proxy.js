@@ -20,6 +20,8 @@ import type { ExportsValue } from './workerExports';
     });
     const cls = wk.spawnClass('classTable', {
         Foo: {
+            construct: {
+            },
             instance: {
                 bar: {
                     deserialize(message) {

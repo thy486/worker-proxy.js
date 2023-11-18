@@ -1,11 +1,9 @@
 /// <reference lib="dom" />
 import { isFunction } from '../../../typeUtils';
+import { CommonActionData } from '../../../types/action';
+import { IMessageRequest } from '../../../types/message/shared';
 import type { UnsubscribeFn } from '../../../types/worker/declare';
-import {
-    type WorkerImplementation,
-    defineWorkerExpose,
-    type DefineWorkerExpose,
-} from '../../../types/worker/worker';
+import { type WorkerImplementation, defineWorkerExpose, type DefineWorkerExpose } from '../../../types/worker/worker';
 
 function isWorkerRuntime() {
     return typeof self !== 'undefined' &&
@@ -24,7 +22,7 @@ const workerImpl: WorkerImplementation<Transferable> = (options) => {
     }
     return {
         subscribeToMasterMessages(onMessage) {
-            const handleMessage = (event: MessageEvent<any>) => onMessage(event.data);
+            const handleMessage = (event: MessageEvent<IMessageRequest<CommonActionData>>) => onMessage(event.data);
             self.addEventListener('message', handleMessage);
             const unsubscribeFn: UnsubscribeFn = () => {
                 self.removeEventListener('message', handleMessage);
@@ -39,5 +37,4 @@ const workerImpl: WorkerImplementation<Transferable> = (options) => {
     };
 };
 
-export const expose: DefineWorkerExpose<Transferable> = (...args) =>
-    defineWorkerExpose(workerImpl, ...args);
+export const expose: DefineWorkerExpose<Transferable> = (...args) => defineWorkerExpose(workerImpl, ...args);

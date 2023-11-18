@@ -51,4 +51,4 @@ const workerImpl: MasterImplementation<TransferListItem, Worker> = async (worker
 };
 
 export const spawn: CreateMasterSpawn<TransferListItem, Worker> = (...args) =>
-    createMasterSpawn(workerImpl, ...args);
+    createMasterSpawn(workerImpl as MasterImplementation<unknown, unknown>, ...args);

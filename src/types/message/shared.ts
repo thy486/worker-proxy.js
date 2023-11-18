@@ -2,7 +2,7 @@ export interface IMessageRequestSignal {
     id: number;
 }
 
-export interface IMessageRequest<T> extends IMessageRequestSignal {
+export interface IMessageRequest<T = unknown> extends IMessageRequestSignal {
     data: T;
 }
 
@@ -29,9 +29,9 @@ export interface IMessageEventResonse {
     type: EMessageResponseType.EVENT;
     ns: string;
     event: string;
-    data: any;
+    data: unknown;
 }
 export type IMessageCallbackCommonResponse<TData, TError> = IMessageOkResponse<TData> | IMessageErrResponse<TError>;
-export type IMessageCommonResponse<TData, TError> =
+export type IMessageCommonResponse<TData = unknown, TError = unknown> =
     | IMessageCallbackCommonResponse<TData, TError>
     | IMessageEventResonse;

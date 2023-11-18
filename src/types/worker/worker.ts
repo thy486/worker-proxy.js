@@ -1,26 +1,28 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { IWorkerRuntime, UnsubscribeFn } from './declare';
 import type * as F from '../fn/worker';
 import * as C from '../class/worker';
 import { type UnshiftArgs, isFunction } from '../../typeUtils';
 import { EMessageResponseType } from '../message/shared';
 import { EAction } from '../action';
+import { ClassExportProxy } from '../class/workerShared';
+import { FunctionProxy } from '../fn/workerShared';
+import { Fn } from '../../type';
 
 export interface IWorkerInitOptions {
-    onUnhandledRejection?: (e: any) => void;
+    onUnhandledRejection?: (e: unknown) => void;
 }
 
 export interface IWorkerRuntimeOptions {
-    handleError?: <T>(e: any) => T;
+    handleError?: <T>(e: unknown) => T;
 }
 
 export interface IWorkerOptions extends IWorkerInitOptions, IWorkerRuntimeOptions {}
 
-export type WorkerImplementation<TransferableObject> = (
+export type WorkerImplementation<TransferableObject = unknown> = (
     options: IWorkerInitOptions,
 ) => IWorkerRuntime<TransferableObject>;
 
-export type DefineWorkerExpose<TransferableObject> = <
+export type DefineWorkerExpose<TransferableObject = unknown> = <
     T extends Record<string, C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>>,
 >(
     exposed: T,
@@ -45,9 +47,8 @@ const strictGetFn = <T extends object, TKey extends keyof T>(exposed: T, fnName:
     }
     throw new ReferenceError(`function(${fnName as string}) is not exposed`);
 };
-
 let unsubscribeFn!: UnsubscribeFn | undefined;
-export const defineWorkerExpose: UnshiftArgs<DefineWorkerExpose<any>, [workerImpl: WorkerImplementation<any>]> = async (
+export const defineWorkerExpose: UnshiftArgs<DefineWorkerExpose, [workerImpl: WorkerImplementation]> = async (
     workerImpl,
     exposed,
     options = {},
@@ -57,90 +58,106 @@ export const defineWorkerExpose: UnshiftArgs<DefineWorkerExpose<any>, [workerImp
         unsubscribeFn = undefined;
     }
     const runtime = workerImpl(options);
-    const handleError = isFunction(options.handleError) ? options.handleError : (e: any) => e;
+    const handleError = isFunction(options.handleError) ? options.handleError : (e: unknown) => e;
     unsubscribeFn = runtime.subscribeToMasterMessages(async (messageData) => {
         const { id, data } = messageData;
         try {
-            let ret: any;
-            let transferList!: any[] | undefined;
+            let ret: unknown;
+            let transferList!: unknown[] | undefined;
 
             switch (data.type) {
-            case EAction.CONSTRUCT: {
-                const exposeClass = strictGetCtor(strictGetNs(exposed, data.ns), data.ctor as string) as C.ExposedModuleTableItem<any>;
-                let args = data.args;
-                const proxy = exposeClass.scope.proxy as any;
-                if (proxy.construct) {
-                    args = proxy.construct(args as any) as any;
+                case EAction.CONSTRUCT: {
+                    const exposeClass = strictGetCtor(
+                        strictGetNs(exposed, data.ns),
+                        data.ctor as string,
+                    ) as C.ExposedModuleTableItem;
+                    let args = data.args;
+                    const proxy = exposeClass.scope.proxy as ClassExportProxy;
+                    if (proxy.construct) {
+                        args = proxy.construct(args);
+                    }
+                    ret = C.createPointer(exposeClass.ctor, new exposeClass.ctor(...args));
+                    break;
                 }
-                ret = C.createPointer(exposeClass.ctor, new exposeClass.ctor(...args));
-                break;
-            }
-            case EAction.CALL: {
-                // call instance function
-                if (data.ptr) {
+                case EAction.CALL: {
+                    // call instance function
+                    if (data.ptr) {
+                        const scope = C.getScopeById(data.ptr.rawType);
+                        if (scope === null) {
+                            throw new ReferenceError(`Pointer type(${data.ptr.rawType}) is not exposed.`);
+                        }
+                        const instance = scope.fromPtr(data.ptr.rawPtr);
+                        if (!instance) {
+                            throw new ReferenceError(`Pointer is not existed`);
+                        }
+                        if (!instance[data.fnName]) {
+                            throw new TypeError(`(intermediate value).${data.fnName} is not a function`);
+                        }
+                        const functionProxy = scope.proxy.instance?.[data.fnName];
+                        if (functionProxy) {
+                            const [result, transferItemList] = await functionProxy((...args: unknown[]) =>
+                                instance[data.fnName](...args),
+                            )(...data.args);
+                            ret = result;
+                            transferList = transferItemList;
+                        } else {
+                            ret = await instance[data.fnName](...data.args);
+                        }
+                        break;
+                    }
+                    // call static function
+                    if (data.ctor) {
+                        const exposeClass = strictGetCtor(
+                            strictGetNs(exposed, data.ns),
+                            data.ctor as string,
+                        ) as C.ExposedModuleTableItem;
+                        if (!isFunction(exposeClass.ctor[data.fnName])) {
+                            throw new TypeError(`${data.ctor as string}.${data.fnName} is not a function`);
+                        }
+                        const functionProxy = exposeClass.scope.proxy.static?.[data.fnName] as unknown as FunctionProxy<
+                            unknown,
+                            Fn
+                        >;
+                        if (functionProxy) {
+                            const [result, transferItemList] = await functionProxy(exposeClass.ctor[data.fnName])(
+                                ...(data.args as unknown[]),
+                            );
+                            ret = result;
+                            transferList = transferItemList;
+                        } else {
+                            ret = await (exposeClass.ctor[data.fnName] as Fn)(...(data.args as unknown[]));
+                        }
+                        break;
+                    }
+                    const exposeFunction = strictGetFn(
+                        strictGetNs(exposed, data.ns),
+                        data.fnName as string,
+                    ) as F.ExposedModuleTableItem;
+                    if (!isFunction(exposeFunction.value)) {
+                        throw new TypeError(`${data.ns}(dynamic exposed).${data.fnName as string} is not a function`);
+                    }
+                    const functionProxy = exposeFunction.proxy;
+                    // call plain function
+                    if (functionProxy) {
+                        const [result, transferItemList] = await functionProxy(exposeFunction.value)(
+                            ...(data.args as unknown[]),
+                        );
+                        ret = result;
+                        transferList = transferItemList;
+                    } else {
+                        ret = await exposeFunction.value(...(data.args as unknown[]));
+                    }
+                    break;
+                }
+                case EAction.FREE: {
                     const scope = C.getScopeById(data.ptr.rawType);
-                    if (scope === null) {
-                        throw new ReferenceError(`Pointer type(${data.ptr.rawType}) is not exposed.`);
-                    }
-                    const instance = scope.fromPtr(data.ptr.rawPtr);
-                    if (!instance) {
-                        throw new ReferenceError(`Pointer is not existed`);
-                    }
-                    if (!instance[data.fnName]) {
-                        throw new TypeError(`(intermediate value).${data.fnName} is not a function`);
-                    }
-                    const functionProxy = scope.proxy.instance?.[data.fnName];
-                    if (functionProxy) {
-                        const [result, transferItemList] = await functionProxy(instance[data.fnName].bind(instance))(...data.args);
-                        ret = result;
-                        transferList = transferItemList;
+                    if (scope) {
+                        ret = await scope.freePtr(data.ptr.rawPtr);
                     } else {
-                        ret = await instance[data.fnName](...data.args);
+                        ret = false;
                     }
                     break;
                 }
-                // call static function
-                if (data.ctor) {
-                    const exposeClass = strictGetCtor(strictGetNs(exposed, data.ns), data.ctor as string) as C.ExposedModuleTableItem<any>;
-                    if (!isFunction((exposeClass.ctor as any)[data.fnName])) {
-                        throw new TypeError(`${data.ctor as string}.${data.fnName} is not a function`);
-                    }
-                    const functionProxy = (exposeClass.scope.proxy.static as any)?.[data.fnName];
-                    if (functionProxy) {
-                        const [result, transferItemList] = await functionProxy(
-                            (exposeClass.ctor as any)[data.fnName],
-                        )(...data.args);
-                        ret = result;
-                        transferList = transferItemList;
-                    } else {
-                        ret = await (exposeClass.ctor as any)[data.fnName](...data.args);
-                    }
-                    break;
-                }
-                const exposeFunction = strictGetFn(strictGetNs(exposed, data.ns), data.fnName as string) as F.ExposedModuleTableItem<any>;
-                if (!isFunction(exposeFunction.value)) {
-                    throw new TypeError(`${data.ns}(dynamic exposed).${data.fnName as any} is not a function`);
-                }
-                const functionProxy = exposeFunction.proxy;
-                // call plain function
-                if (functionProxy) {
-                    const [result, transferItemList] = await functionProxy(exposeFunction.value)(...data.args);
-                    ret = result;
-                    transferList = transferItemList;
-                } else {
-                    ret = await exposeFunction.value(...data.args);
-                }
-                break;
-            }
-            case EAction.FREE: {
-                const scope = C.getScopeById(data.ptr.rawType);
-                if (scope) {
-                    ret = await scope.freePtr(data.ptr.rawPtr);
-                } else {
-                    ret = false;
-                }
-                break;
-            }
             }
             runtime.postMessageToMaster(
                 {

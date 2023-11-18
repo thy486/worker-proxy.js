@@ -1,70 +1,50 @@
 import type * as S from '../../serializers';
-import * as FS from './workerShared';
+import * as FWS from './workerShared';
+import * as FS from './shared';
 import type { Fn } from '../../type';
-import { type Equal, isFunction } from '../../typeUtils';
+import { isFunction } from '../../typeUtils';
 import type { TransferableOptions } from '../../transferable';
 
 const $FUNCTION_DEFINE = Symbol('function::define');
 
-export interface IRuntimeOptions<
-    TransferableObject,
-    T extends Fn,
-    Args = Parameters<T>,
-    Result = Awaited<ReturnType<T>>,
-> extends TransferableOptions<TransferableObject, Result>,
-        S.Serializer<Args, Result, Args, unknown> {}
+export interface IRuntimeOptions<TransferableObject = unknown, T extends Fn = Fn, Result = Awaited<ReturnType<T>>>
+    extends TransferableOptions<TransferableObject, Result>,
+        FS.IFunctionResultBySerialize<T> {}
 
-export interface IDefinedModuleTableExport<
-    TransferableObject,
-    T extends Fn,
-    TOptions extends IRuntimeOptions<TransferableObject, T>,
-> {
+export interface IDefinedModuleTableExport<T extends Fn, TOptions extends IRuntimeOptions> {
     [$FUNCTION_DEFINE]: true;
     value: T;
     options?: TOptions;
 }
 
 export type ModuleTableExport<
-    TransferableObject,
-    T extends Fn,
-    TOptions extends IRuntimeOptions<TransferableObject, T> = IRuntimeOptions<TransferableObject, T>,
-> = T | IDefinedModuleTableExport<TransferableObject, T, TOptions>;
-
-export type ExtractModuleTableSerializerExport<
-    TFn extends Fn,
-    S extends S.Serializer<any, any>,
-    TArgs extends Parameters<TFn> = Parameters<TFn>,
-    TReturnType extends ReturnType<TFn> = ReturnType<TFn>,
-    TResult extends Awaited<TReturnType> = Awaited<TReturnType>,
-    TDefaultSerializer extends S.WithDefault<S, TArgs, TResult> = S.WithDefault<S, TArgs, TResult>,
-> = TDefaultSerializer extends S.Serializer<infer MsgIn, infer MsgOut, infer _, infer SerMsgOut>
-    ? Equal<SerMsgOut, MsgOut> extends true
-        ? TFn
-        : MsgIn extends any[]
-          ? (...args: MsgIn) => Promise<SerMsgOut>
-          : // Args will always be array
-            TFn
-    : TFn;
+    TransferableObject = unknown,
+    T extends Fn = Fn,
+    TOptions extends IRuntimeOptions = IRuntimeOptions<TransferableObject, T>,
+> = T | IDefinedModuleTableExport<T, TOptions>;
 
 export type ExposedModuleTableItem<
-    TransferableObject,
+    TransferableObject = unknown,
     TFn extends Fn = Fn,
-    TOptions extends IRuntimeOptions<any, any, any> = IRuntimeOptions<any, any, any>,
+    TOptions extends IRuntimeOptions = IRuntimeOptions,
 > = {
     value: TFn;
     proxy: TOptions extends never
-        ? FS.FunctionProxy<TransferableObject, Fn>
-        : FS.FunctionProxy<TransferableObject, TFn>;
+        ? FWS.FunctionProxy<TransferableObject, Fn>
+        : FWS.FunctionProxy<TransferableObject, TFn>;
 };
-type ExtractModuleTableOptionsExport<T extends Fn, TOptions> = TOptions extends S.Serializer<any, any>
-    ? ExtractModuleTableSerializerExport<T, TOptions>
+export type ExtractModuleTableOptionsExport<T extends Fn, TOptions> = TOptions extends S.Serializer
+    ? FS.ExtractFunctionResultFnBySerialize<T, TOptions>
     : T;
 
 export type ExposedModuleTable<
-    TransferableObject,
-    T extends Record<string, any> = Record<string, ModuleTableExport<TransferableObject, Fn>>,
+    TransferableObject = unknown,
+    T extends Record<string, ModuleTableExport<TransferableObject, Fn>> = Record<
+        string,
+        ModuleTableExport<TransferableObject, Fn>
+    >,
 > = {
-    [K in keyof T]: T[K] extends IDefinedModuleTableExport<infer _, infer TFn, infer TOptions>
+    [K in keyof T]: T[K] extends IDefinedModuleTableExport<infer TFn, infer TOptions>
         ? T[K]['options'] extends undefined
             ? ExposedModuleTableItem<TransferableObject, ExtractModuleTableOptionsExport<TFn, TOptions>, never>
             : ExposedModuleTableItem<TransferableObject, ExtractModuleTableOptionsExport<TFn, TOptions>, TOptions>
@@ -73,44 +53,46 @@ export type ExposedModuleTable<
           : ExposedModuleTableItem<TransferableObject>;
 };
 
-export type DefineModuleTableExport<TransferableObject> = <
+export type DefineModuleTableExport<TransferableObject = unknown> = <
     T extends Fn,
     TOptions extends IRuntimeOptions<TransferableObject, T>,
 >(
     fn: T,
     options?: TOptions,
-) => IDefinedModuleTableExport<TransferableObject, T, TOptions>;
+) => IDefinedModuleTableExport<T, TOptions>;
 
-export type ExposeModuleTable<TransferableObject> = <T extends Record<string, any>>(
+export type ExposeModuleTable<TransferableObject = never> = <
+    T extends Record<string, ModuleTableExport<TransferableObject, Fn>>,
+>(
     moduleTable: T,
 ) => ExposedModuleTable<TransferableObject, T>;
 
-export const define: DefineModuleTableExport<any> = (fn, options) => ({
+export const define: DefineModuleTableExport = (fn, options) => ({
     [$FUNCTION_DEFINE]: true,
     value: fn,
     options,
 });
 
-export const expose = ((moduleTable: Record<string, ModuleTableExport<any, Fn>>) => {
-    const result: ExposedModuleTable<any, any> = {};
+export const expose = ((moduleTable: Record<string, ModuleTableExport>) => {
+    const result: ExposedModuleTable = {};
     for (const key in moduleTable) {
         const exportItem = moduleTable[key];
 
         if (isFunction(exportItem)) {
             result[key] = {
                 value: exportItem,
-            } as ExposedModuleTableItem<any, Fn, IRuntimeOptions<any, Fn>>;
+            } as ExposedModuleTableItem;
             continue;
         }
 
         const item = {
             value: exportItem.value,
-        } as ExposedModuleTableItem<any, Fn, IRuntimeOptions<any, Fn>>;
+        } as ExposedModuleTableItem;
         if (exportItem.options) {
-            item.proxy = FS.createProxy(exportItem.options);
+            item.proxy = FWS.createProxy(exportItem.options);
         }
         result[key] = item;
     }
 
     return result;
-}) as ExposeModuleTable<any>;
+}) as ExposeModuleTable;

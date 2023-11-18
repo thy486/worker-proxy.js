@@ -1,5 +1,4 @@
 import type { ClassType, Fn, FunctionTable, InstancePropertyTable, StaticPropertyTable } from '../../type';
-import type { Prettify } from '../../typeUtils';
 import type * as FS from '../fn/workerShared';
 import type { IClassDefineOptions, IClassDefineRequiredOptions } from './shared';
 import type { IConstructFunctionOption } from './worker';
@@ -34,21 +33,20 @@ export type ExtractFunctionProxy<TransferableObject, TOptionsTable, TProperties>
 export type ExtractProxyFromOptions<
     TransferableObject,
     T extends ClassType = ClassType,
-    TOptions extends IClassDefineOptions<any, any, any> = IClassDefineOptions<any, any, any>,
+    TOptions extends IClassDefineOptions = IClassDefineOptions,
     TStaticProperties extends StaticPropertyTable<T> = StaticPropertyTable<T>,
     TInstanceProperties extends InstancePropertyTable<T> = InstancePropertyTable<T>,
 > = Readonly<
-
-        IClassDefineRequiredOptions<
-            ExtractFunctionProxy<TransferableObject, TOptions['static'], TStaticProperties>,
-            ExtractFunctionProxy<TransferableObject, TOptions['instance'], TInstanceProperties>,
-            TOptions['construct'] extends IConstructFunctionOption<TransferableObject, any>
-                ? ConstructorExportProxy<T>
-                : never
-        >
+    IClassDefineRequiredOptions<
+        ExtractFunctionProxy<TransferableObject, TOptions['static'], TStaticProperties>,
+        ExtractFunctionProxy<TransferableObject, TOptions['instance'], TInstanceProperties>,
+        TOptions['construct'] extends IConstructFunctionOption
+            ? ConstructorExportProxy<T>
+            : never
+    >
 >;
 
-export type ClassExportProxy<TransferableObject, T extends ClassType> = IClassDefineOptions<
+export type ClassExportProxy<TransferableObject = unknown, T extends ClassType = ClassType> = IClassDefineOptions<
     ClassStaticExportProxy<TransferableObject, T>,
     ClassInstanceExportProxy<TransferableObject, T>,
     ConstructorExportProxy<T>

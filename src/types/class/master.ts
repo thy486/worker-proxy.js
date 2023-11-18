@@ -1,4 +1,12 @@
-import type { ClassType, ConstructorType, Fn, FunctionTable, InstancePropertyTable, StaticPropertyTable } from '../../type';
+import type {
+    ClassType,
+    ConstructorType,
+    Fn,
+    FunctionTable,
+    InstancePropertyTable,
+    PromiseOrValue,
+    StaticPropertyTable,
+} from '../../type';
 import { type ClassEqualToDefault, type EqualToDefault, type PhantomData, isFunction } from '../../typeUtils';
 import type { IClassDefineOptions } from './shared';
 import type * as S from '../../serializers';
@@ -14,11 +22,10 @@ import {
     type IConstructData,
     type IFreePtrData,
 } from '../action';
-import { setProxyDefaultProperty } from '../fn/shared';
 
 const $POINTER = Symbol('mater::pointer');
 
-export type ExtractWorkerFunction<T extends Fn> = ReturnType<T> extends Promise<any>
+export type ExtractWorkerFunction<T extends Fn> = ReturnType<T> extends Promise<unknown>
     ? T
     : (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>;
 
@@ -27,7 +34,7 @@ export type WorkerPropertyTable<T> = {
         ? ExtractWorkerFunction<T[K]>
         : T[K];
 };
-type ExtractWorkerClass<T extends ClassType> = ClassEqualToDefault<
+type ExtractWorkerClass<T extends ClassType = ClassType> = ClassEqualToDefault<
     WorkerPropertyTable<StaticPropertyTable<T>> &
         ConstructorType<T, ConstructorParameters<T>, WorkerPropertyTable<InstancePropertyTable<T>>>,
     T
@@ -57,30 +64,33 @@ export type IFunctionOptions<TransferableObject, T extends ClassType> = IClassDe
     IInstanceOptions<TransferableObject, T>,
     IConstructFunctionOption<TransferableObject, T>
 >;
-export interface IDefinedFunctionOptions<TransferableObject, T extends ClassType> {
+export interface IDefinedFunctionOptions<TransferableObject = unknown, T extends ClassType = ClassType> {
     static?: Record<keyof FunctionTable<StaticPropertyTable<T>>, F.IRuntimeOptions<TransferableObject, Fn>>;
     instance?: Record<keyof FunctionTable<InstancePropertyTable<T>>, F.IRuntimeOptions<TransferableObject, Fn>>;
     construct?: IConstructFunctionOption<TransferableObject, T>;
 }
-export interface IRuntimeOptions<TransferableObject, T extends ClassType, TResolvedClassType extends ClassType = T>
-    extends IFunctionOptions<TransferableObject, TResolvedClassType> {}
+export interface IRuntimeOptions<
+    TransferableObject = unknown,
+    T extends ClassType = ClassType,
+    TResolvedClassType extends ClassType = T,
+> extends IFunctionOptions<TransferableObject, TResolvedClassType> {}
 
-type ExtractFunctionTableOptionsExport<TFunctionTable extends Record<any, Fn>, TOptions> = {
+type ExtractFunctionTableOptionsExport<TFunctionTable extends Record<string | number | symbol, Fn>, TOptions> = {
     [K in keyof TFunctionTable]: K extends keyof TOptions
-        ? TOptions[K] extends S.Serializer<any, any>
+        ? TOptions[K] extends S.Serializer
             ? F.ExtractModuleTableSerializerExport<TFunctionTable[K], TOptions[K]>
             : TFunctionTable[K]
         : TFunctionTable[K];
 };
 type ExtractClassStaticExport<
     T extends ClassType,
-    TOptions extends IClassDefineOptions<any, any, any>,
+    TOptions extends IClassDefineOptions,
     TStaticFunctionTable extends FunctionTable<StaticPropertyTable<T>> = FunctionTable<StaticPropertyTable<T>>,
 > = EqualToDefault<ConstructorType<T> & ExtractFunctionTableOptionsExport<TStaticFunctionTable, TOptions['static']>, T>;
 
 type ExtractClassInstanceExport<
     T extends ClassType,
-    TOptions extends IClassDefineOptions<any, any, any>,
+    TOptions extends IClassDefineOptions,
     TInstanceFunctionTable extends InstancePropertyTable<T> = InstancePropertyTable<T>,
 > = EqualToDefault<
     StaticPropertyTable<T> &
@@ -92,10 +102,7 @@ type ExtractClassInstanceExport<
     T
 >;
 
-type ExtractModuleTableFunctionOptionsExport<T extends ClassType, TOptions> = TOptions extends IDefinedFunctionOptions<
-    any,
-    any
->
+type ExtractModuleTableFunctionOptionsExport<T extends ClassType, TOptions> = TOptions extends IDefinedFunctionOptions
     ? ExtractClassStaticExport<ExtractClassInstanceExport<T, TOptions>, TOptions>
     : T;
 
@@ -104,20 +111,19 @@ type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = ExtractMod
     TOptions
 >;
 type DefinedFunctionSpawn<
-    T extends I.ExposedModuleTable<any, any>,
+    T extends I.ExposedModuleTable = I.ExposedModuleTable,
     TOptions extends DefineClassSpawnOptions<T> = DefineClassSpawnOptions<T>,
 > = {
     [K in keyof T]: ExtractWorkerClass<
         K extends keyof TOptions
-            ? TOptions[K] extends IDefinedFunctionOptions<any, any>
+            ? TOptions[K] extends IDefinedFunctionOptions
                 ? ExtractModuleTableOptionsExport<T[K]['ctor'], TOptions[K]>
                 : T[K]['ctor']
             : T[K]['ctor']
     >;
 };
-export type DefineClassSpawnOptions<T extends I.ExposedModuleTable<any, any>> = T extends I.ExposedModuleTable<
-    infer TransferableObject,
-    any
+export type DefineClassSpawnOptions<T extends I.ExposedModuleTable = I.ExposedModuleTable> = T extends I.ExposedModuleTable<
+    infer TransferableObject
 >
     ? {
           readonly [K in keyof T]?: IRuntimeOptions<TransferableObject, T[K]['ctor']>;
@@ -125,8 +131,11 @@ export type DefineClassSpawnOptions<T extends I.ExposedModuleTable<any, any>> = 
     : never;
 
 export type CreateClassSpawn<
-    TransferableObject,
-    T extends Record<string, I.ExposedModuleTable<TransferableObject, any>>,
+    TransferableObject = unknown,
+    T extends Record<string, I.ExposedModuleTable<TransferableObject>> = Record<
+        string,
+        I.ExposedModuleTable<TransferableObject>
+    >,
 > = <
     Ns extends keyof T = keyof T,
     Table extends T[Ns] = T[Ns],
@@ -137,19 +146,19 @@ export type CreateClassSpawn<
 ) => DefinedFunctionSpawn<Table, TOptions>;
 
 interface IPointerInstance {
-    [$POINTER]: Promise<I.IPointer<any>> | I.IPointer<any> | null;
+    [$POINTER]: Promise<I.IPointer> | I.IPointer | null;
 }
 
 const _createPointerSpawn = (
-    msg: MessageFactory<any>,
+    msg: MessageFactory,
     ns: string,
-    pointer: I.IPointer<any> | Promise<I.IPointer<any>>,
-    options: IRuntimeOptions<any, any>,
+    pointer: I.IPointer | Promise<I.IPointer>,
+    options: IRuntimeOptions,
 ) => {
     const pointerInstance: IPointerInstance = {
         [$POINTER]: pointer,
     };
-    setProxyDefaultProperty(pointerInstance);
+    FS.setProxyDefaultProperty(pointerInstance);
 
     return new Proxy(pointerInstance as unknown as Record<string, Fn>, {
         get(target, p: string) {
@@ -168,7 +177,7 @@ const _createPointerSpawn = (
                         args,
                         ns: ns as string,
                         ptr: await pointer,
-                    }) as ICallClassInstanceFunctionData<any>,
+                    }) as ICallClassInstanceFunctionData,
                 options['instance']?.[p],
             );
             target[p] = msgHandle;
@@ -177,14 +186,9 @@ const _createPointerSpawn = (
     });
 };
 
-const createCtorSpawn = (
-    msg: MessageFactory<any>,
-    ns: string,
-    ctorKey: string,
-    options: IRuntimeOptions<any, any> = {},
-) => {
-    const workerClassProxy = function () {} as unknown as Record<string, Fn>;
-    setProxyDefaultProperty(workerClassProxy);
+const createCtorSpawn = (msg: MessageFactory, ns: string, ctorKey: string, options: IRuntimeOptions = {}) => {
+    const workerClassProxy = function () {} as unknown as Record<string, Fn> & ClassType;
+    FS.setProxyDefaultProperty(workerClassProxy);
     return new Proxy(workerClassProxy, {
         // static function
         get(target, p: string) {
@@ -201,38 +205,43 @@ const createCtorSpawn = (
                         args,
                         ns: ns as string,
                         ctor: ctorKey,
-                    }) as ICallClassStaticFunctionData<any>,
-                options['static']?.[p],
+                    }) as ICallClassStaticFunctionData,
+                options['static']?.[p as keyof IRuntimeOptions['static']],
             );
             target[p] = msgHandle;
             return msgHandle;
         },
         construct(_target, argArray) {
-            let transferItems!: unknown[] | undefined;
-
+            let transferItems: unknown[] | undefined = undefined;
+            let pointer!: Promise<I.IPointer>;
+            const createPointer = async (argArray: PromiseOrValue<unknown[]>): Promise<I.IPointer> => {
+                const actionData: IConstructData = {
+                    type: EAction.CONSTRUCT,
+                    args: await argArray,
+                    ns,
+                    ctor: ctorKey,
+                };
+                return msg(actionData, transferItems);
+            };
             if (options.construct) {
                 if (isFunction(options.construct.transfer)) {
                     transferItems = options.construct.transfer(argArray);
                 }
                 if (isFunction(options.construct.serialize)) {
-                    argArray = options.construct.serialize(argArray) as any[];
+                    pointer = createPointer(options.construct.serialize(argArray));
                 }
             }
-            const actionData: IConstructData<any> = {
-                type: EAction.CONSTRUCT,
-                args: argArray,
-                ns,
-                ctor: ctorKey,
-            };
-            const pointer = msg(actionData, transferItems);
-            return _createPointerSpawn(msg, ns, pointer as Promise<I.IPointer<any>>, options);
+            if (!pointer) {
+                pointer = createPointer(argArray);
+            }
+            return _createPointerSpawn(msg, ns, pointer as Promise<I.IPointer>, options);
         },
-    }) as ExtractWorkerClass<any>;
+    }) as ExtractWorkerClass;
 };
 
-export const createClassSpawn: ClassImpl<any, CreateClassSpawn<any, any>> = (msg, context, ns, options = {}) => {
-    const result = {} as DefinedFunctionSpawn<any>;
-    setProxyDefaultProperty(result);
+export const createClassSpawn: ClassImpl<unknown, CreateClassSpawn> = (msg, context, ns, options = {}) => {
+    const result = {} as DefinedFunctionSpawn;
+    FS.setProxyDefaultProperty(result);
     context.GLOBAL_CLASS_OPTION_STORE[ns as string] = options;
     return new Proxy(result, {
         get(target, p: string) {
@@ -248,7 +257,13 @@ export const createClassSpawn: ClassImpl<any, CreateClassSpawn<any, any>> = (msg
     });
 };
 
-export type Free<TransferableObject, T extends Record<string, I.ExposedModuleTable<TransferableObject, any>>> = <
+export type Free<
+    TransferableObject = unknown,
+    T extends Record<string, I.ExposedModuleTable<TransferableObject>> = Record<
+        string,
+        I.ExposedModuleTable<TransferableObject>
+    >,
+> = <
     Ns extends keyof T = keyof T,
     Table extends T[Ns] = T[Ns],
     TKeys extends keyof Table = keyof Table,
@@ -258,25 +273,28 @@ export type Free<TransferableObject, T extends Record<string, I.ExposedModuleTab
     instance: TInstance,
 ) => Promise<TInstance extends PhantomData<typeof I.$FREE_TYPE, infer PhantomType> ? PhantomType | false : boolean>;
 
-export const free: ClassImpl<any, Free<any, any>> = async (msg, _context, instance) => {
-    if ((instance as any)[$POINTER]) {
+export const free: ClassImpl<unknown, Free> = async (msg, _context, instance) => {
+    if ((instance as IPointerInstance)[$POINTER]) {
         const ptr = await (instance as IPointerInstance)[$POINTER]!;
-        const actionData: IFreePtrData<any> = {
+        const actionData: IFreePtrData = {
             type: EAction.FREE,
             ptr,
         };
         try {
             return await msg(actionData);
         } finally {
-            (instance as any)[$POINTER] = null;
+            (instance as IPointerInstance)[$POINTER] = null;
         }
     }
     return false;
 };
 
 export type CreatePointerSpawn<
-    TransferableObject,
-    T extends Record<string, I.ExposedModuleTable<TransferableObject, any>>,
+    TransferableObject = unknown,
+    T extends Record<string, I.ExposedModuleTable<TransferableObject>> = Record<
+        string,
+        I.ExposedModuleTable<TransferableObject>
+    >,
 > = <
     Ns extends keyof T = keyof T,
     Table extends T[Ns] = T[Ns],
@@ -288,13 +306,7 @@ export type CreatePointerSpawn<
     ctorKey: TKeys,
     pointer: I.IPointer<TInstance>,
 ) => EqualToDefault<WorkerPropertyTable<TInstance>, TInstance>;
-export const createPointerSpawn: ClassImpl<any, CreatePointerSpawn<any, any>> = (
-    msg,
-    context,
-    ns,
-    ctorKey,
-    pointer,
-) => {
+export const createPointerSpawn: ClassImpl<unknown, CreatePointerSpawn> = (msg, context, ns, ctorKey, pointer) => {
     const options = context.GLOBAL_CLASS_OPTION_STORE[ns as string]?.[ctorKey as string] ?? {};
 
     return _createPointerSpawn(msg, ns as string, pointer, options);

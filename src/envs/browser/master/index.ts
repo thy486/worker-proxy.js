@@ -1,5 +1,6 @@
 /// <reference lib="dom" />
 import { isFunction } from '../../../typeUtils';
+import { IMessageCommonResponse } from '../../../types/message/shared';
 import type { UnsubscribeFn } from '../../../types/worker/declare';
 import { type MasterImplementation, createMasterSpawn, type CreateMasterSpawn } from '../../../types/worker/master';
 
@@ -14,7 +15,7 @@ const workerImpl: MasterImplementation<Transferable, Worker> = (worker, options)
             worker.postMessage(message, transferList!);
         },
         subscribeToWorkerMessages(onMessage) {
-            const handleMessage = (event: MessageEvent<any>) => onMessage(event.data);
+            const handleMessage = (event: MessageEvent<IMessageCommonResponse>) => onMessage(event.data);
             worker.addEventListener('message', handleMessage);
             const unsubscribeFn: UnsubscribeFn = () => {
                 worker.removeEventListener('message', handleMessage);
@@ -39,4 +40,5 @@ const workerImpl: MasterImplementation<Transferable, Worker> = (worker, options)
     };
 };
 
-export const spawn: CreateMasterSpawn<Transferable, Worker> = (...args) => createMasterSpawn(workerImpl, ...args);
+export const spawn: CreateMasterSpawn<Transferable, Worker> = (...args) =>
+    createMasterSpawn(workerImpl as MasterImplementation<unknown, unknown>, ...args);

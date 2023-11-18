@@ -19,7 +19,7 @@ export interface IActionData {
 }
 
 export interface ICallPlainFunctionData<
-    T extends F.ExposedModuleTable<any, any>,
+    T extends F.ExposedModuleTable = never,
     TKeys extends keyof T = keyof T,
     TArgs extends Parameters<T[TKeys]['value']> = Parameters<T[TKeys]['value']>,
 > extends IActionData,
@@ -32,7 +32,7 @@ export interface ICallPlainFunctionData<
 }
 
 export interface ICallClassInstanceFunctionData<
-    T extends ClassType,
+    T extends ClassType = ClassType,
     TInstanceTable extends FunctionTable<InstancePropertyTable<T>> = FunctionTable<InstancePropertyTable<T>>,
     TKeys extends keyof TInstanceTable = keyof TInstanceTable,
 > extends IActionData {
@@ -43,7 +43,7 @@ export interface ICallClassInstanceFunctionData<
     ctor?: never;
 }
 export interface ICallClassStaticFunctionData<
-    T extends C.ExposedModuleTable<any, any>,
+    T extends C.ExposedModuleTable = C.ExposedModuleTable,
     TKeys extends keyof T = keyof T,
     TCtor extends T[TKeys]['ctor'] = T[TKeys]['ctor'],
     TStaticTable extends FunctionTable<StaticPropertyTable<TCtor>> = FunctionTable<StaticPropertyTable<TCtor>>,
@@ -56,22 +56,22 @@ export interface ICallClassStaticFunctionData<
     ptr?: never;
     ctor: TKeys;
 }
-export interface IConstructData<T extends C.ExposedModuleTable<any, any>, TKeys extends keyof T = keyof T>
+export interface IConstructData<T extends C.ExposedModuleTable = C.ExposedModuleTable, TKeys extends keyof T = keyof T>
     extends IActionData,
         INamespaceData {
     type: EAction.CONSTRUCT;
     ctor: TKeys;
-    args: Parameters<T[TKeys]['ctor']>;
+    args: ConstructorParameters<T[TKeys]['ctor']>;
 }
 
-export interface IFreePtrData<T> extends IActionData {
+export interface IFreePtrData<T = unknown> extends IActionData {
     type: EAction.FREE;
     ptr: IPointer<T>;
 }
 
 export type CommonActionData =
-    | IConstructData<any>
-    | ICallPlainFunctionData<any>
-    | ICallClassInstanceFunctionData<any>
-    | ICallClassStaticFunctionData<any>
-    | IFreePtrData<any>;
+    | IConstructData
+    | ICallPlainFunctionData
+    | ICallClassInstanceFunctionData
+    | ICallClassStaticFunctionData
+    | IFreePtrData;
