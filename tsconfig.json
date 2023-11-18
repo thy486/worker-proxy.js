@@ -15,7 +15,7 @@
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "allowJs": true,
-    "outDir": "app",
+    "outDir": "dist",
     "types": [
       "vite/client",
       "bun-types" // add Bun global
