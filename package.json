@@ -3,7 +3,8 @@
   "module": "dist/es/node/index.js",
   "main": "dist/cjs/node/index.js",
   "types": "dist/envs/node/index.d.ts",
-  "version": "0.0.1-beta.0",
+  "version": "0.0.1-beta.1",
+  "description": "worker module export implementation with es6 api",
   "type": "module",
   "devDependencies": {
     "@types/node": "^20.9.0",
@@ -21,6 +22,18 @@
     "vite-plugin-dts": "^3.6.3",
     "vitest": "^0.34.6"
   },
+  "author": {
+    "name": "thy486"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thy486/worker-proxy.js"
+  },
+  "keywords": [
+    "worker",
+    "thread"
+  ],
   "exports": {
     ".": {
       "require": "./dist/cjs/node/index.js",

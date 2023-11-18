@@ -46,7 +46,7 @@ export default defineConfig({
             },
             external: ['worker_threads'],
         },
-        outDir: 'dist',
+        outDir: path.join(__dirname, 'dist'),
     },
     ['test' as keyof UserConfig]: {
         setupFiles: ['@vitest/web-worker'],
