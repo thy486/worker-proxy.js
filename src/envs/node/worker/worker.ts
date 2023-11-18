@@ -25,3 +25,8 @@ const workerImpl: WorkerImplementation<TransferListItem> = (options) => {
 };
 
 export const expose: DefineWorkerExpose<TransferListItem> = (...args) => defineWorkerExpose(workerImpl, ...args);
+export type {
+    WorkerImplementation,
+    DefineWorkerExpose,
+    UnsubscribeFn
+};

@@ -9,3 +9,7 @@ import type { TransferListItem } from 'worker_threads';
 export const define: DefineModuleTableExport<TransferListItem> = defineCommon;
 
 export const expose: ExposeModuleTable<TransferListItem> = exposeCommon;
+export type {
+    DefineModuleTableExport,
+    ExposeModuleTable,
+};

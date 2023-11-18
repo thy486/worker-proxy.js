@@ -10,3 +10,7 @@ export { createPointer, fromMasterInstance, type IPointer } from '../../../types
 export const define = defineCommon as DefineModuleTableExport<Transferable>;
 
 export const expose = exposeCommon as ExposeModuleTable<Transferable>;
+export type {
+    DefineModuleTableExport,
+    ExposeModuleTable,
+};
