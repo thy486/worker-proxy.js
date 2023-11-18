@@ -6,7 +6,7 @@ import type {
     InstancePropertyTable,
     PromiseOrValue,
     StaticPropertyTable,
-} from '../../type';
+} from '../../shared/type';
 import {
     type ClassEqualToDefault,
     type EqualToDefault,
@@ -14,9 +14,9 @@ import {
     isFunction,
     ExtractPhantomData,
     Phantom,
-} from '../../typeUtils';
+} from '../../shared/typeUtils';
 import type { IClassDefineOptions } from './shared';
-import type * as S from '../../serializers';
+import type * as S from '../../shared/serializers';
 import type * as F from '../fn/master';
 import * as FS from '../fn/shared';
 import * as FWS from '../fn/masterShared';
@@ -30,8 +30,8 @@ import {
     type IConstructData,
     type IFreePtrData,
 } from '../action';
-import { $ORIGIN_TYPE, ClassHelper, WithDefaultClassHelper } from '../../classHelper';
-import { ITransferableOptions } from '../../transferable';
+import { $ORIGIN_TYPE, ClassHelper, WithDefaultClassHelper } from '../../shared/classHelper';
+import { ITransferableOptions } from '../../shared/transferable';
 
 const $POINTER = Symbol('mater::pointer');
 

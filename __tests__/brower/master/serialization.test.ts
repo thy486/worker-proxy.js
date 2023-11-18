@@ -3,7 +3,7 @@ import { spawn } from '../../../src/envs/browser/master';
 import type { SerializationExposed } from '../workers/serialization';
 
 test('can use a custom serializer', async (t) => {
-    const worker = new Worker(new URL("../workers/serialization", import.meta.url), { type: 'module' });
+    const worker = new Worker(new URL('../workers/serialization', import.meta.url), { type: 'module' });
     const module = await spawn<SerializationExposed>(worker);
     const table = module.spawnClass('serialization', {
         Bar: {
@@ -30,10 +30,9 @@ test('can use a custom serializer', async (t) => {
                 getBar: {
                     deserialize(message) {
                         return module.deserializePointer('serialization', 'Bar', message);
-                    
                     },
-                }
-            }
+                },
+            },
         },
     });
     const TEST_VALUE = 'Test';

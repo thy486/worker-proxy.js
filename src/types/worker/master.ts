@@ -11,8 +11,8 @@ import {
     serializeToPointer,
 } from '../class/master';
 import { type CreateFunctionSpawn, createFunctionSpawn } from '../fn/master';
-import { type PromiseOrValue } from '../../type';
-import { type UnshiftArgs, isFunction, mergeVoidFunction } from '../../typeUtils';
+import { type PromiseOrValue } from '../../shared/type';
+import { type UnshiftArgs, isFunction, mergeVoidFunction } from '../../shared/typeUtils';
 import type { IClassContext } from '../class/masterShared';
 import type { IMasterRuntime, UnsubscribeFn } from './declare';
 import { EMessageResponseType } from '../message/shared';
@@ -170,7 +170,8 @@ export const createMasterSpawn: UnshiftArgs<CreateMasterSpawn, [masterImpl: Mast
     return {
         spawnClass: (ns, options) => createClassSpawn(msgSender, classContext, ns, options),
         spawnFunction: (ns, options) => createFunctionSpawn(msgSender, ns, options),
-        deserializePointer: (ns, ctorKey, pointer) => createPointerSpawn(msgSender, classContext, ns, ctorKey as string, pointer),
+        deserializePointer: (ns, ctorKey, pointer) =>
+            createPointerSpawn(msgSender, classContext, ns, ctorKey as string, pointer),
         serializePointer: serializeToPointer,
         free: (instance) => free(msgSender, classContext, instance as never),
     } as IMasterSpawnRuntime<unknown, Record<string, C.ExposedModuleTable<unknown> | F.ExposedModuleTable<unknown>>>;

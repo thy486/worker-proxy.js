@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import { isFunction } from '../../../typeUtils';
+import { isFunction } from '../../../shared/typeUtils';
 import { CommonActionData } from '../../../types/action';
 import { IMessageRequest } from '../../../types/message/shared';
 import type { UnsubscribeFn } from '../../../types/worker/declare';

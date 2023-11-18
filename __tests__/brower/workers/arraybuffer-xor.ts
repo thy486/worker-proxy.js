@@ -7,11 +7,13 @@ function xor(buffer: ArrayBuffer, value: number) {
 }
 
 const exposed = {
-    xor: Fn.expose({ xor: Fn.define(xor, {
-        transfer(input) {
-            return [input];
-        },
-    }) }),
+    xor: Fn.expose({
+        xor: Fn.define(xor, {
+            transfer(input) {
+                return [input];
+            },
+        }),
+    }),
 };
 export type XorBufferExposed = typeof exposed;
 expose(exposed);

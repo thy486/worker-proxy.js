@@ -1,12 +1,12 @@
 import type { IWorkerRuntime, UnsubscribeFn } from './declare';
 import type * as F from '../fn/worker';
 import * as C from '../class/worker';
-import { type UnshiftArgs, isFunction } from '../../typeUtils';
+import { type UnshiftArgs, isFunction } from '../../shared/typeUtils';
 import { EMessageResponseType } from '../message/shared';
 import { EAction } from '../action';
 import { ClassExportProxy } from '../class/workerShared';
 import { FunctionProxy } from '../fn/workerShared';
-import { Fn } from '../../type';
+import { Fn } from '../../shared/type';
 
 export interface IWorkerInitOptions {
     onUnhandledRejection?: (e: unknown) => void;

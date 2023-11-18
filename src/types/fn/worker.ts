@@ -1,9 +1,9 @@
-import type * as S from '../../serializers';
+import type * as S from '../../shared/serializers';
 import * as FWS from './workerShared';
 import * as FS from './shared';
-import type { Fn } from '../../type';
-import { isFunction } from '../../typeUtils';
-import type { ITransferableOptions } from '../../transferable';
+import type { Fn } from '../../shared/type';
+import { isFunction } from '../../shared/typeUtils';
+import type { ITransferableOptions } from '../../shared/transferable';
 
 const $FUNCTION_DEFINE = Symbol('function::define');
 

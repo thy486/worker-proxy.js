@@ -1,6 +1,5 @@
 import { expose, createPointer, Fn, Class } from '../../src/envs/browser/worker';
 
-
 export class Bar {
     public value2: number = 1;
     public value(): string {
@@ -68,7 +67,7 @@ const functionTable = Fn.expose({
         transfer(input) {
             return [input];
         },
-    })
+    }),
 });
 const exportsValue = {
     classTable,

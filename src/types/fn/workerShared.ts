@@ -1,5 +1,5 @@
-import type { Fn } from '../../type';
-import { isFunction } from '../../typeUtils';
+import type { Fn } from '../../shared/type';
+import { isFunction } from '../../shared/typeUtils';
 import type * as F from './worker';
 
 export type FunctionProxy<
@@ -10,7 +10,7 @@ export type FunctionProxy<
     TAwaitedResult extends Awaited<TResult> = Awaited<TResult>,
 > = (origin: T) => (...args: TArgs) => Promise<[result: TAwaitedResult, transferListItems?: TransferableObject[]]>;
 
-export type CreateProxy<TransferableObject = unknown> = <T extends Fn = never>(
+export type CreateProxy<TransferableObject = unknown> = <T extends Fn = Fn>(
     options: F.IRuntimeOptions<TransferableObject, T>,
 ) => FunctionProxy<TransferableObject, T>;
 
@@ -21,7 +21,7 @@ export const createProxy: CreateProxy = (options) => {
             (origin) =>
             async (...args) => {
                 const result = await origin(...args);
-                return [result, options.transfer!(result)];
+                return [result, options.transfer!(result as never)];
             };
     } else {
         proxy =
@@ -33,7 +33,7 @@ export const createProxy: CreateProxy = (options) => {
         proxy =
             (origin) =>
             async (...args) =>
-                oldProxy(origin)(...((await options.deserialize!(args)) as never[]));
+                oldProxy(origin)(...((await options.deserialize!(args)) as unknown[]));
     }
     if (isFunction(options.serialize)) {
         const oldProxy = proxy;

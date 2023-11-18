@@ -1,6 +1,9 @@
 {
   "name": "worker-proxy.js",
-  "module": "index.ts",
+  "module": "dist/es/node/index.js",
+  "main": "dist/cjs/node/index.js",
+  "types": "dist/envs/node/index.d.ts",
+  "version": "0.0.1-beta.0",
   "type": "module",
   "devDependencies": {
     "@types/node": "^20.9.0",
@@ -9,17 +12,33 @@
     "@vitest/web-worker": "^0.34.6",
     "bun-types": "latest",
     "eslint": "^8.53.0",
+    "fast-glob": "^3.3.2",
     "happy-dom": "^12.10.3",
     "prettier": "^3.1.0",
     "tsx": "^4.1.2",
     "typescript": "^5.2.2",
-    "vite": "^4.5.0",
+    "vite": "latest",
+    "vite-plugin-dts": "^3.6.3",
     "vitest": "^0.34.6"
   },
+  "exports": {
+    ".": {
+      "require": "./dist/cjs/node/index.js",
+      "import": "./dist/es/node/index.js",
+      "types": "./dist/src/envs/node/index.d.ts"
+    },
+    "./browser": {
+      "require": "./dist/cjs/browser/index.js",
+      "import": "./dist/es/browser/index.js",
+      "types": "./dist/src/envs/browser/index.d.ts"
+    }
+  },
   "scripts": {
-    "dev": "vite --force",
-    "fmt": "prettier --config .prettierrc --write ./**/*.{ts}",
+    "dev": "vite --force -c vite.browser.config.ts",
+    "build": "vite build",
+    "fmt": "prettier --config .prettierrc --write ./**/*.ts",
     "lint": "eslint . --fix",
-    "test": "vitest"
+    "test": "vitest",
+    "prepublishOnly": "bun run fmt && bun run lint && bun run build"
   }
 }

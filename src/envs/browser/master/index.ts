@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-import { isFunction } from '../../../typeUtils';
+import { isFunction } from '../../../shared/typeUtils';
 import { IMessageCommonResponse } from '../../../types/message/shared';
 import type { UnsubscribeFn } from '../../../types/worker/declare';
 import { type MasterImplementation, createMasterSpawn, type CreateMasterSpawn } from '../../../types/worker/master';

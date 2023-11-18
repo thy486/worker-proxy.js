@@ -1,4 +1,4 @@
-import type { ClassType, Fn, FunctionTable, StaticPropertyTable } from '../../type';
+import type { ClassType, Fn, FunctionTable, StaticPropertyTable } from '../../shared/type';
 import type * as FS from '../fn/workerShared';
 import type { IClassDefineOptions, IClassDefineRequiredOptions } from './shared';
 import type { IConstructFunctionOption } from './worker';
@@ -40,9 +40,7 @@ export type ExtractProxyFromOptions<
     IClassDefineRequiredOptions<
         ExtractFunctionProxy<TransferableObject, TOptions['static'], TStaticProperties>,
         ExtractFunctionProxy<TransferableObject, TOptions['instance'], TInstanceProperties>,
-        TOptions['construct'] extends IConstructFunctionOption
-            ? ConstructorExportProxy<T>
-            : never
+        TOptions['construct'] extends IConstructFunctionOption ? ConstructorExportProxy<T> : never
     >
 >;
 

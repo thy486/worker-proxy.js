@@ -33,10 +33,9 @@ test('can use a custom serializer', async (t) => {
                 getBar: {
                     deserialize(message) {
                         return module.deserializePointer('serialization', 'Bar', message);
-                    
                     },
-                }
-            }
+                },
+            },
         },
     });
     const TEST_VALUE = 'Test';

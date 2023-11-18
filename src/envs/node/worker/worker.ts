@@ -1,10 +1,6 @@
-import { isFunction } from '../../../typeUtils';
+import { isFunction } from '../../../shared/typeUtils';
 import type { UnsubscribeFn } from '../../../types/worker/declare';
-import {
-    type WorkerImplementation,
-    defineWorkerExpose,
-    type DefineWorkerExpose,
-} from '../../../types/worker/worker';
+import { type WorkerImplementation, defineWorkerExpose, type DefineWorkerExpose } from '../../../types/worker/worker';
 import { type TransferListItem, isMainThread, parentPort } from 'worker_threads';
 
 const workerImpl: WorkerImplementation<TransferListItem> = (options) => {
@@ -28,5 +24,4 @@ const workerImpl: WorkerImplementation<TransferListItem> = (options) => {
     };
 };
 
-export const expose: DefineWorkerExpose<TransferListItem> = (...args) =>
-    defineWorkerExpose(workerImpl, ...args);
+export const expose: DefineWorkerExpose<TransferListItem> = (...args) => defineWorkerExpose(workerImpl, ...args);

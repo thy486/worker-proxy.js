@@ -1,5 +1,5 @@
-import type { Fn, PromiseOrValue } from '../../type';
-import { isFunction } from '../../typeUtils';
+import type { Fn, PromiseOrValue } from '../../shared/type';
+import { isFunction } from '../../shared/typeUtils';
 import type * as F from './master';
 import type { MessageFactory, WithMessageSender } from '../message/declare';
 import type { IActionData } from '../action';

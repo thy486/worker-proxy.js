@@ -1,7 +1,12 @@
 import { PromiseOrValue } from './type';
 import type { Equal } from './typeUtils';
 
-export interface Serializer<DeSerMsgIn = never, SerMsgIn = never, DeserializedMsgOut = unknown, SerializedMsgOut = unknown> {
+export interface Serializer<
+    DeSerMsgIn = never,
+    SerMsgIn = never,
+    DeserializedMsgOut = unknown,
+    SerializedMsgOut = unknown,
+> {
     deserialize?: (message: DeSerMsgIn) => PromiseOrValue<DeserializedMsgOut>;
     serialize?: (input: SerMsgIn) => PromiseOrValue<SerializedMsgOut>;
 }

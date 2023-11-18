@@ -1,6 +1,6 @@
-import { Fn } from '../../type';
-import type * as S from '../../serializers';
-import { Equal } from '../../typeUtils';
+import { Fn } from '../../shared/type';
+import type * as S from '../../shared/serializers';
+import { Equal } from '../../shared/typeUtils';
 
 export interface IFunctionResultBySerialize<T extends Fn, Args = Parameters<T>, Result = Awaited<ReturnType<T>>>
     extends S.Serializer<Args, Result, Args, unknown> {}

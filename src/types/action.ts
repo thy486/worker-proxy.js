@@ -1,4 +1,4 @@
-import type { ClassType, FunctionTable, StaticPropertyTable } from '../type';
+import type { ClassType, FunctionTable, StaticPropertyTable } from '../shared/type';
 import type { IPointer } from './class/worker';
 import type * as F from './fn/worker';
 import type * as C from './class/worker';

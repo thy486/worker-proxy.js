@@ -24,7 +24,7 @@ test('can pass transferable objects on thread call', async (t) => {
 
     t.expect(returnedBuffer.byteLength).equal(ARRAT_BUFFER_LENGTH);
 
-    t.expect(returnedBuffer).deep.equal((new Uint8Array(new ArrayBuffer(ARRAT_BUFFER_LENGTH))).fill(XOR_VALUE).buffer);
+    t.expect(returnedBuffer).deep.equal(new Uint8Array(new ArrayBuffer(ARRAT_BUFFER_LENGTH)).fill(XOR_VALUE).buffer);
 
     worker.terminate();
 });

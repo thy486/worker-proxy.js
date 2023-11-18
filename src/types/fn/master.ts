@@ -1,8 +1,8 @@
-import * as S from '../../serializers';
-import type { Fn } from '../../type';
-import type { Equal } from '../../typeUtils';
+import * as S from '../../shared/serializers';
+import type { Fn } from '../../shared/type';
+import type { Equal } from '../../shared/typeUtils';
 import { EAction, type ICallPlainFunctionData } from '../action';
-import type { ITransferableOptions } from '../../transferable';
+import type { ITransferableOptions } from '../../shared/transferable';
 import type * as I from './worker';
 import { type FunctionImpl, createMsgHandle, setProxyDefaultProperty } from './masterShared';
 

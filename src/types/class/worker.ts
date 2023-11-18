@@ -5,14 +5,14 @@ import type {
     FunctionTable,
     PromiseOrValue,
     StaticPropertyTable,
-} from '../../type';
-import { type PhantomData, type Phantom, isFunction, Equal } from '../../typeUtils';
+} from '../../shared/type';
+import { type PhantomData, type Phantom, isFunction, Equal } from '../../shared/typeUtils';
 import type * as F from '../fn/worker';
 import * as FWS from '../fn/workerShared';
 import * as FS from '../fn/shared';
 import type * as CS from './workerShared';
 import type { IClassDefineOptions } from './shared';
-import type { $ORIGIN_TYPE, ClassHelper } from '../../classHelper';
+import type { $ORIGIN_TYPE, ClassHelper } from '../../shared/classHelper';
 
 const $CLASS_DEFINE = Symbol('class::define');
 export declare const $FREE_TYPE: unique symbol;

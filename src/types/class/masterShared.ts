@@ -1,5 +1,5 @@
-import type { Fn } from '../../type';
-import type { UnshiftArgs } from '../../typeUtils';
+import type { Fn } from '../../shared/type';
+import type { UnshiftArgs } from '../../shared/typeUtils';
 import type { WithMessageSender } from '../message/declare';
 import type * as C from './master';
 

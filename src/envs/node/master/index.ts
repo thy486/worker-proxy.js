@@ -1,9 +1,5 @@
 import type { UnsubscribeFn } from '../../../types/worker/declare';
-import {
-    type MasterImplementation,
-    createMasterSpawn,
-    type CreateMasterSpawn,
-} from '../../../types/worker/master';
+import { type MasterImplementation, createMasterSpawn, type CreateMasterSpawn } from '../../../types/worker/master';
 import type { TransferListItem, Worker } from 'worker_threads';
 
 const workerImpl: MasterImplementation<TransferListItem, Worker> = async (worker, options) => {

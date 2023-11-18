@@ -1,5 +1,5 @@
-import { Fn } from '../../type';
-import type { UnshiftArgs } from '../../typeUtils';
+import { Fn } from '../../shared/type';
+import type { UnshiftArgs } from '../../shared/typeUtils';
 import type { IActionData } from '../action';
 
 export type WithMessageSender<TransferableObject, T extends Fn> = UnshiftArgs<
