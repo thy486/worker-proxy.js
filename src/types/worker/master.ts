@@ -27,7 +27,7 @@ export interface IMasterRuntimeOptions {
     handleError?: <T>(e: unknown) => T;
 }
 export interface IWorkerOptions extends IMasterInitOptions, IMasterRuntimeOptions {}
-interface IMasterSpawnRuntime<
+export interface IMasterSpawnRuntime<
     TransferableObject,
     T extends Record<
         string,

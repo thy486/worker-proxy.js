@@ -44,21 +44,21 @@ export type WorkerPropertyTable<T> = {
         ? ExtractWorkerFunction<T[K]>
         : T[K];
 };
-type ExtractWorkerClass<T extends ClassType = ClassType> = ClassEqualToDefault<
+export type ExtractWorkerClass<T extends ClassType = ClassType> = ClassEqualToDefault<
     WithDefaultClassHelper<T> extends ClassHelper<infer C, infer S, infer Params, infer R>
         ? ClassHelper<C, WorkerPropertyTable<StaticPropertyTable<S>>, Params, WorkerPropertyTable<R>>
         : T,
     T
 >;
 
-type IStaticOptions<
+export type IStaticOptions<
     TransferableObject,
     T extends ClassType,
     TStaticFunctionTable extends FunctionTable<StaticPropertyTable<T>> = FunctionTable<StaticPropertyTable<T>>,
 > = {
     [K in keyof TStaticFunctionTable]?: F.IRuntimeOptions<TransferableObject, TStaticFunctionTable[K]>;
 };
-type IInstanceOptions<
+export type IInstanceOptions<
     TransferableObject,
     T extends ClassType,
     TInstanceFunctionTable extends FunctionTable<InstancePropertyTable<T>> = FunctionTable<InstancePropertyTable<T>>,
@@ -88,14 +88,14 @@ export interface IRuntimeOptions<
     TResolvedClassType extends ClassType = T,
 > extends IFunctionOptions<TransferableObject, TResolvedClassType> {}
 
-type ExtractFunctionTableOptionsExport<TFunctionTable extends Record<string | number | symbol, Fn>, TOptions> = {
+export type ExtractFunctionTableOptionsExport<TFunctionTable extends Record<string | number | symbol, Fn>, TOptions> = {
     [K in keyof TFunctionTable]: K extends keyof TOptions
         ? TOptions[K] extends S.Serializer
             ? F.ExtractModuleTableSerializerExport<TFunctionTable[K], TOptions[K]>
             : TFunctionTable[K]
         : TFunctionTable[K];
 };
-type ExtractModuleTableFunctionOptionsExport<
+export type ExtractModuleTableFunctionOptionsExport<
     T extends ClassType,
     TOptions extends IDefinedFunctionOptions,
 > = ClassHelper<
@@ -107,7 +107,7 @@ type ExtractModuleTableFunctionOptionsExport<
     ExtractFunctionTableOptionsExport<InstanceType<T>, TOptions['instance']>
 >;
 
-type DefinedFunctionSpawn<
+export type DefinedFunctionSpawn<
     T extends I.ExposedModuleTable = I.ExposedModuleTable,
     TOptions extends DefineClassSpawnOptions<T> = DefineClassSpawnOptions<T>,
 > = {
@@ -141,7 +141,7 @@ export type CreateClassSpawn<
     options?: TOptions,
 ) => DefinedFunctionSpawn<Table, TOptions>;
 
-interface IPointerInstance {
+export interface IPointerInstance {
     [$POINTER]: Promise<I.IPointer> | I.IPointer | null;
 }
 

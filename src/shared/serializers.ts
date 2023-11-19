@@ -11,7 +11,7 @@ export interface Serializer<
     serialize?: (input: SerMsgIn) => PromiseOrValue<SerializedMsgOut>;
 }
 
-type DefaultWithSerializerInstance<T, DefaultMsgIn, DefaultMsgOut> = T extends Serializer<
+export type DefaultWithSerializerInstance<T, DefaultMsgIn, DefaultMsgOut> = T extends Serializer<
     infer MsgIn,
     infer MsgOut,
     infer DeserializedMsgIn,
@@ -26,7 +26,7 @@ type DefaultWithSerializerInstance<T, DefaultMsgIn, DefaultMsgOut> = T extends S
           : Serializer<MsgIn, MsgOut, DeserializedMsgIn, SerializedMsgOut>
     : T;
 
-type DefaultSerializer<T> = T extends Serializer<
+export type DefaultSerializer<T> = T extends Serializer<
     infer MsgIn,
     infer MsgOut,
     infer DeserializedMsgIn,

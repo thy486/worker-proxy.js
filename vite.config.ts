@@ -26,7 +26,8 @@ export default defineConfig({
         dts({
             copyDtsFiles: true,
             exclude: ['examples/**', '__tests__/**'],
-            insertTypesEntry: true,
+            // rollupTypes: true,
+            staticImport: true
         }),
     ],
     build: {

@@ -2,10 +2,10 @@ import type { ClassType, ConstructorTypeCustom, StaticPropertyTable } from './ty
 import type { Equal, EqualToDefault, Phantom } from './typeUtils';
 
 export declare const $ORIGIN_TYPE: unique symbol;
-type AddOriginType<T, TOrigin> = Phantom<T, typeof $ORIGIN_TYPE, TOrigin>;
+export type AddOriginType<T, TOrigin> = Phantom<T, typeof $ORIGIN_TYPE, TOrigin>;
 export type ExtraOriginType<T> = T extends AddOriginType<infer _, infer TOrigin> ? TOrigin : T;
 
-type ConstructorHelper<
+export type ConstructorHelper<
     T extends ClassType,
     TConstructorParameters extends unknown[],
     TInstancePropertyTable,

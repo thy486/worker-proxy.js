@@ -34,5 +34,5 @@ import workerUrl from './workerExports?worker&url';
     console.log(n);
     console.log(await fns.channel());
     console.log(await (await new cls.Foo().bar()).value());
-    worker.terminate();
+    // worker.terminate();
 })().catch(console.error);

@@ -1,7 +1,7 @@
 import { CommonActionData, IActionData } from '../action';
 import { IMessageCommonResponse, IMessageRequest } from '../message/shared';
 
-type UnsubscribeFn = () => void;
+export type UnsubscribeFn = () => void;
 
 export interface IWorkerRuntime<TransferableObject = unknown> {
     postMessageToMaster(message: IMessageCommonResponse, transferList?: TransferableObject[]): void;

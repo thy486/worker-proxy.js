@@ -38,8 +38,4 @@ const workerImpl: WorkerImplementation<Transferable> = (options) => {
 };
 
 export const expose: DefineWorkerExpose<Transferable> = (...args) => defineWorkerExpose(workerImpl, ...args);
-export type {
-    WorkerImplementation,
-    DefineWorkerExpose,
-    UnsubscribeFn
-};
+export type { WorkerImplementation, DefineWorkerExpose, UnsubscribeFn };

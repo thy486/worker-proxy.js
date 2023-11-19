@@ -32,7 +32,7 @@ export type ExtractModuleTableSerializerExport<
           : // Args will always be array
             TFn
     : TFn;
-type DefinedFunctionSpawn<
+export type DefinedFunctionSpawn<
     T extends I.ExposedModuleTable = I.ExposedModuleTable,
     TOptions extends DefineFunctionSpawnOptions<T> = DefineFunctionSpawnOptions<T>,
 > = {

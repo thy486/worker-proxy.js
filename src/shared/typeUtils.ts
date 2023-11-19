@@ -51,3 +51,20 @@ export const mergeVoidFunction =
         a();
         b();
     };
+export type CreateTuple<T extends unknown[]> = (...args: T) => T;
+export type MergedTuple<T extends unknown[], T2 extends unknown[], F = CreateTuple<T>> = Parameters<
+    F extends (...args: infer Args) => unknown
+        ? (
+              ...args: {
+                  [K in keyof Args]: K extends keyof T2 ? T2[K] : Args[K];
+              }
+          ) => unknown
+        : never
+>;
+export type MergeTuple = <T extends unknown[], T2 extends unknown[]>(origin: T, current: T2) => MergedTuple<T, T2>;
+export const mergeTuple: MergeTuple = (a, b) => {
+    for (let i = 0, len = b.length; i < len; i++) {
+        a[i] = b[i];
+    }
+    return a;
+};

@@ -27,17 +27,17 @@ export interface IPointer<T = unknown> {
     rawPtr: number;
     rawType: number;
 }
-interface IFreeOptions<T extends ClassType, TCallbackType = unknown> {
+export interface IFreeOptions<T extends ClassType, TCallbackType = unknown> {
     onFree?: (instance: InstanceType<T>) => PromiseOrValue<TCallbackType>;
 }
-type IStaticOptions<
+export type IStaticOptions<
     TransferableObject,
     T extends ClassType,
     TStaticFunctionTable extends FunctionTable<StaticPropertyTable<T>> = FunctionTable<StaticPropertyTable<T>>,
 > = {
     [K in keyof TStaticFunctionTable]?: F.IRuntimeOptions<TransferableObject, TStaticFunctionTable[K]>;
 };
-type IInstanceOptions<
+export type IInstanceOptions<
     TransferableObject,
     T extends ClassType,
     TInstanceFunctionTable extends FunctionTable<InstanceType<T>> = FunctionTable<InstanceType<T>>,
@@ -83,7 +83,7 @@ export interface IDefinedModuleTableExport<
     options?: TOptions;
 }
 
-interface IResolvedDefinedModuleTableExport<
+export interface IResolvedDefinedModuleTableExport<
     TransferableObject,
     T extends ClassType,
     TOptions extends IDefinedRuntimeOptions<TransferableObject>,
@@ -105,7 +105,7 @@ export type DefineModuleTableExport<TransferableObject = unknown> = <
     options?: TOptions,
 ) => IDefinedModuleTableExport<TransferableObject, T, TOptions>;
 
-type ExtractFunctionTableOptionsExport<TPropertyTable, TOptions> = {
+export type ExtractFunctionTableOptionsExport<TPropertyTable, TOptions> = {
     [K in keyof TPropertyTable]: TPropertyTable[K] extends Fn
         ? K extends keyof TOptions
             ? F.ExtractModuleTableOptionsExport<TPropertyTable[K], TOptions[K]>
@@ -113,7 +113,7 @@ type ExtractFunctionTableOptionsExport<TPropertyTable, TOptions> = {
         : TPropertyTable[K];
 };
 
-type ExtractModuleTableFunctionOptionsExport<
+export type ExtractModuleTableFunctionOptionsExport<
     T extends ClassType,
     TOptions extends IDefinedFunctionOptions,
     TFreeCallback = unknown,
@@ -132,7 +132,7 @@ type ExtractModuleTableFunctionOptionsExport<
           >
 >;
 
-type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = TOptions extends IFreeOptions<never, infer Result>
+export type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = TOptions extends IFreeOptions<never, infer Result>
     ? TOptions extends IDefinedFunctionOptions
         ? ExtractModuleTableFunctionOptionsExport<T, TOptions, Result>
         : ClassHelper<T, unknown, unknown[], Phantom<InstanceType<T>, typeof $FREE_TYPE, Result>>
@@ -173,7 +173,7 @@ export type ExposeModuleTable<TransferableObject = unknown> = <
     moduleTable: T,
 ) => ExposedModuleTable<TransferableObject, T>;
 
-class PtrScope<
+export class PtrScope<
     TransferableObject = unknown,
     T extends ClassType = ClassType,
     TOptions extends IClassDefineOptions = IRuntimeOptions<TransferableObject, T>,

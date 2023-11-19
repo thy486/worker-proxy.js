@@ -8,7 +8,4 @@ import {
 export const define: DefineModuleTableExport<Transferable> = defineCommon;
 
 export const expose: ExposeModuleTable<Transferable> = exposeCommon;
-export type {
-    DefineModuleTableExport,
-    ExposeModuleTable,
-};
+export type { DefineModuleTableExport, ExposeModuleTable };
