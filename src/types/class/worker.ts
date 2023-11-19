@@ -132,7 +132,10 @@ export type ExtractModuleTableFunctionOptionsExport<
           >
 >;
 
-export type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = TOptions extends IFreeOptions<never, infer Result>
+export type ExtractModuleTableOptionsExport<T extends ClassType, TOptions> = TOptions extends IFreeOptions<
+    never,
+    infer Result
+>
     ? TOptions extends IDefinedFunctionOptions
         ? ExtractModuleTableFunctionOptionsExport<T, TOptions, Result>
         : ClassHelper<T, unknown, unknown[], Phantom<InstanceType<T>, typeof $FREE_TYPE, Result>>

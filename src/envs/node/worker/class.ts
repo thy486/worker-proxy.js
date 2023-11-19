@@ -5,8 +5,8 @@ import {
     expose as exposeCommon,
 } from '../../../types/class/worker';
 import type { TransferListItem } from 'worker_threads';
-
-export { createPointer, fromMasterInstance, type IPointer } from '../../../types/class/worker';
+export type * from '../../../types/class/worker';
+export { createPointer, fromMasterInstance } from '../../../types/class/worker';
 
 export const define: DefineModuleTableExport<TransferListItem> = defineCommon;
 

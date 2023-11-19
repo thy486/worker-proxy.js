@@ -4,8 +4,8 @@ import {
     define as defineCommon,
     expose as exposeCommon,
 } from '../../../types/class/worker';
-
-export { createPointer, fromMasterInstance, type IPointer } from '../../../types/class/worker';
+export type * from '../../../types/class/worker';
+export { createPointer, fromMasterInstance } from '../../../types/class/worker';
 
 export const define = defineCommon as DefineModuleTableExport<Transferable>;
 
