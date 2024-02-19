@@ -26,9 +26,9 @@ export const setProxyDefaultProperty = (proxyObj: object) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (proxyObj as any).then = undefined;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (proxyObj as any)[Symbol.for("debug.description")] = null;
+    (proxyObj as any)[Symbol.for('debug.description')] = null;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (proxyObj as any)[Symbol.for("nodejs.util.inspect.custom")] = null;
+    (proxyObj as any)[Symbol.for('nodejs.util.inspect.custom')] = null;
 };
 
 export const createMsgHandle: CreateMsgHandle = (msg, msgBuilder, options) => {

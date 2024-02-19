@@ -29,7 +29,7 @@ export default defineConfig({
             // rollupTypes: true,
             staticImport: true,
             entryRoot: 'src',
-            outDir: 'dist/types'
+            outDir: 'dist/types',
         }),
     ],
     build: {
@@ -38,15 +38,18 @@ export default defineConfig({
         },
         ssr: true,
         rollupOptions: {
-            output: [{
-                entryFileNames: '[format]/[name].js',
-                preserveModules: true,
-                format: 'es'
-            }, {
-                entryFileNames: '[format]/[name].cjs',
-                preserveModules: true,
-                format: 'cjs'
-            }]
+            output: [
+                {
+                    entryFileNames: '[format]/[name].js',
+                    preserveModules: true,
+                    format: 'es',
+                },
+                {
+                    entryFileNames: '[format]/[name].cjs',
+                    preserveModules: true,
+                    format: 'cjs',
+                },
+            ],
         },
         outDir: path.join(__dirname, 'dist'),
     },
