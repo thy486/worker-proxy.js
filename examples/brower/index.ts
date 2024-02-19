@@ -3,7 +3,7 @@ import type { ExportsValue } from './workerExports';
 import workerUrl from './workerExports?worker&url';
 
 (async () => {
-    // const worker = new Worker(import.meta.dir + "/workerExports.ts");
+    // const worker = new Worker(import.meta.dir + "/workerExports");
     const worker = new Worker(workerUrl, { type: 'module' });
     const wk = await spawn<ExportsValue>(worker);
     const fns = wk.spawnFunction('functionTable', {
@@ -34,5 +34,5 @@ import workerUrl from './workerExports?worker&url';
     console.log(n);
     console.log(await fns.channel());
     console.log(await (await new cls.Foo().bar()).value());
-    // worker.terminate();
+    worker.terminate();
 })().catch(console.error);

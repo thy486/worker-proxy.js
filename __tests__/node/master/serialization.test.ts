@@ -1,18 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test } from 'vitest';
 import { spawn } from '../../../src/envs/node/master';
 import { Worker } from 'worker_threads';
 import type { SerializationExposed } from '../workers/serialization';
+import { mergeTuple } from '../../../src/shared/typeUtils';
 
 test('can use a custom serializer', async (t) => {
     const worker = new Worker(new URL('../workers/serialization', import.meta.url), {
         execArgv: process.env.VITEST ? ['--loader', 'tsx'] : undefined,
     });
+    // const worker = new Worker('../workers/serialization.ts');
     const module = await spawn<SerializationExposed>(worker);
     const table = module.spawnClass('serialization', {
         Bar: {
             construct: {
                 async serialize(input) {
-                    return [await module.serializePointer('serialization', 'Foo', input[0])] as const;
+                    return mergeTuple(input, [await module.serializePointer('serialization', 'Foo', input[0])] as const);
                 },
             },
             instance: {
@@ -26,7 +29,7 @@ test('can use a custom serializer', async (t) => {
         Car: {
             construct: {
                 async serialize(input) {
-                    return [await module.serializePointer('serialization', 'Bar', input[0])] as const;
+                    return mergeTuple(input, [await module.serializePointer('serialization', 'Bar', input[0])] as const);
                 },
             },
             instance: {

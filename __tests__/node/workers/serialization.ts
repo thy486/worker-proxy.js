@@ -1,4 +1,5 @@
 import { expose, Class } from '../../../src/envs/node/worker';
+import { mergeTuple } from '../../../src/shared/typeUtils';
 import { Foo, Bar, Car } from '../../lib/serialization';
 
 const exposed = {
@@ -7,7 +8,7 @@ const exposed = {
         Bar: Class.define(Bar, {
             construct: {
                 deserialize(message) {
-                    return [Class.fromMasterInstance(message[0])] as const;
+                    return mergeTuple(message, [Class.fromMasterInstance(message[0])] as const);
                 },
             },
             instance: {
@@ -29,7 +30,7 @@ const exposed = {
         Car: Class.define(Car, {
             construct: {
                 deserialize(message) {
-                    return [Class.fromMasterInstance(message[0])] as const;
+                    return mergeTuple(message, [Class.fromMasterInstance(message[0])] as const);
                 },
             },
             instance: {

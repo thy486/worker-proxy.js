@@ -38,13 +38,13 @@ import type { ExportsValue } from './workerExports';
     const bar = new cls.Bar();
     const foo = new cls.Foo(bar);
 
-    // console.log(cls);
-    // console.log(wk);
+    console.log(cls);
+    console.log(wk);
     console.log(await foo.bar());
     const n = await wk.free(foo);
 
     console.log(n);
-    // console.log(await await new cls.Foo().bar());
+    console.log(await (await new cls.Foo(bar).bar()).value());
     worker.terminate();
 })().catch(console.error);
 
