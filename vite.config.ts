@@ -28,23 +28,25 @@ export default defineConfig({
             exclude: ['examples/**', '__tests__/**'],
             // rollupTypes: true,
             staticImport: true,
+            entryRoot: 'src',
+            outDir: 'dist/types'
         }),
     ],
     build: {
         lib: {
             entry: ['src/envs/browser/index.ts', 'src/envs/node/index.ts'],
-            formats: ['es', 'cjs'],
         },
+        ssr: true,
         rollupOptions: {
-            output: {
-                entryFileNames(chunkInfo) {
-                    const filepath = chunkInfo.facadeModuleId;
-                    const getDir = getParentDirNameFactory(filepath);
-                    return `[format]/${getDir(1)}/index.js`;
-                },
-                chunkFileNames: '[format]/chunks/[name]-[hash].js',
-            },
-            external: ['worker_threads'],
+            output: [{
+                entryFileNames: '[format]/[name].js',
+                preserveModules: true,
+                format: 'es'
+            }, {
+                entryFileNames: '[format]/[name].cjs',
+                preserveModules: true,
+                format: 'cjs'
+            }]
         },
         outDir: path.join(__dirname, 'dist'),
     },

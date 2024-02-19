@@ -27,8 +27,8 @@ import workerUrl from './workerExports?worker&url';
     console.log(JSON.stringify(cls));
     const foo = new cls.Foo();
 
-    // console.log(cls);
-    // console.log(wk);
+    console.log(cls);
+    console.log(wk);
     console.log(await foo.value());
     const n = await wk.free(foo);
     console.log(n);

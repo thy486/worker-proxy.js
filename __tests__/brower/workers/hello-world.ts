@@ -1,11 +1,11 @@
-import { expose, exposeFunctionTable } from '../../../src/envs/browser/worker';
+import { Fn, expose } from '../../../src/envs/browser/worker';
 
 function helloWorld() {
     return 'Hello World';
 }
 
 const exposed = {
-    hello: exposeFunctionTable({ helloWorld }),
+    hello: Fn.expose({ helloWorld }),
 };
 export type HelloWorldExposed = typeof exposed;
 expose(exposed);

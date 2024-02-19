@@ -1,4 +1,4 @@
-import { expose, exposeFunctionTable } from '../../../src/envs/node/worker';
+import { expose, Fn } from '../../../src/envs/node/worker';
 
 let counter = 0;
 
@@ -8,7 +8,7 @@ function increment(by: number = 1) {
 }
 
 const exposed = {
-    increment: exposeFunctionTable({ increment }),
+    increment: Fn.expose({ increment }),
 };
 export type IncrementExposed = typeof exposed;
 expose(exposed);

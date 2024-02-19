@@ -74,7 +74,7 @@ export const createFunctionSpawn: FunctionImpl<unknown, CreateFunctionSpawn> = (
     return new Proxy(result, {
         get: (target, p) => {
             const key = p as string;
-            if (target[key]) {
+            if (key in target) {
                 return target[key];
             }
 

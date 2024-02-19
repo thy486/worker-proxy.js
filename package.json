@@ -1,7 +1,7 @@
 {
   "name": "worker-proxy.js",
-  "module": "dist/es/node/index.js",
-  "main": "dist/cjs/node/index.js",
+  "module": "dist/es/envs/node/index.js",
+  "main": "dist/cjs/envs/node/index.cjs",
   "types": "dist/envs/node/index.d.ts",
   "version": "0.0.1-beta.5",
   "description": "worker module export implementation with es6 api",
@@ -18,7 +18,7 @@
     "prettier": "^3.1.0",
     "tsx": "^4.1.2",
     "typescript": "^5.2.2",
-    "vite": "latest",
+    "vite": "^5.1.3",
     "vite-plugin-dts": "^3.6.3",
     "vitest": "^0.34.6"
   },
@@ -36,14 +36,14 @@
   ],
   "exports": {
     ".": {
-      "require": "./dist/cjs/node/index.js",
-      "import": "./dist/es/node/index.js",
-      "types": "./dist/src/envs/node/index.d.ts"
+      "require": "./dist/cjs/envs/node/index.cjs",
+      "import": "./dist/es/envs/node/index.js",
+      "types": "./dist/types/envs/node/index.d.ts"
     },
     "./browser": {
-      "require": "./dist/cjs/browser/index.js",
-      "import": "./dist/es/browser/index.js",
-      "types": "./dist/src/envs/browser/index.d.ts"
+      "require": "./dist/cjs/envs/browser/index.cjs",
+      "import": "./dist/es/envs/browser/index.js",
+      "types": "./dist/types/envs/browser/index.d.ts"
     }
   },
   "scripts": {
@@ -53,8 +53,5 @@
     "lint": "eslint . --fix",
     "test": "vitest",
     "prepublishOnly": "bun run fmt && bun run lint && bun run build"
-  },
-  "dependencies": {
-    "worker-proxy.js": "latest"
   }
 }

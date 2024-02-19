@@ -1,4 +1,4 @@
-import { expose, createPointer, Fn, Class } from '../../src/envs/browser/worker';
+import { expose, Fn, Class } from '../../src/envs/browser/worker';
 
 export class Bar {
     public value2: number = 1;
@@ -54,7 +54,7 @@ const classTable = Class.expose({
         instance: {
             bar: {
                 serialize(input) {
-                    return createPointer(Bar, input);
+                    return Class.createPointer(Bar, input);
                 },
             },
         },
