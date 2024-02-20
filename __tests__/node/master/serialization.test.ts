@@ -15,7 +15,9 @@ test('can use a custom serializer', async (t) => {
         Bar: {
             construct: {
                 async serialize(input) {
-                    return mergeTuple(input, [await module.serializePointer('serialization', 'Foo', input[0])] as const);
+                    return mergeTuple(input, [
+                        await module.serializePointer('serialization', 'Foo', input[0]),
+                    ] as const);
                 },
             },
             instance: {
@@ -29,7 +31,9 @@ test('can use a custom serializer', async (t) => {
         Car: {
             construct: {
                 async serialize(input) {
-                    return mergeTuple(input, [await module.serializePointer('serialization', 'Bar', input[0])] as const);
+                    return mergeTuple(input, [
+                        await module.serializePointer('serialization', 'Bar', input[0]),
+                    ] as const);
                 },
             },
             instance: {

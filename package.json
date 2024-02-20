@@ -3,7 +3,7 @@
   "module": "dist/es/envs/node/index.js",
   "main": "dist/cjs/envs/node/index.cjs",
   "types": "dist/envs/node/index.d.ts",
-  "version": "0.0.1-beta.6",
+  "version": "0.0.1-beta.10",
   "description": "worker module export implementation with es6 api",
   "type": "module",
   "devDependencies": {

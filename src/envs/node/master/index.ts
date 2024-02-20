@@ -1,8 +1,18 @@
 import type { UnsubscribeFn } from '../../../types/worker/declare';
-import { type MasterImplementation, createMasterSpawn, type CreateMasterSpawn } from '../../../types/worker/master';
+import type { WorkerExposedValue } from '../../../types/worker/worker';
+import {
+    createMasterSpawn,
+    MasterSpawnAbstractClass as MasterSpawnAbstractClassCommon,
+    type MasterImplementation,
+    type CreateMasterSpawn,
+} from '../../../types/worker/master';
 import type { TransferListItem, Worker } from 'worker_threads';
 
-const workerImpl: MasterImplementation<TransferListItem, Worker> = async (worker, options) => {
+export abstract class MasterSpawnAbstractClass<
+    T extends WorkerExposedValue<TransferListItem>,
+> extends MasterSpawnAbstractClassCommon<TransferListItem, T> {}
+
+const defaultWorkerImpl: MasterImplementation<TransferListItem, Worker> = async (worker, options) => {
     // init worker
     await new Promise<void>((resolve, reject) => {
         worker.once('online', () => {
@@ -47,4 +57,4 @@ const workerImpl: MasterImplementation<TransferListItem, Worker> = async (worker
 };
 
 export const spawn: CreateMasterSpawn<TransferListItem, Worker> = (...args) =>
-    createMasterSpawn(workerImpl as MasterImplementation<unknown, unknown>, ...args);
+    createMasterSpawn(defaultWorkerImpl, ...args);

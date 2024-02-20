@@ -2,9 +2,19 @@
 import { isFunction } from '../../../shared/typeUtils';
 import { IMessageCommonResponse } from '../../../types/message/shared';
 import type { UnsubscribeFn } from '../../../types/worker/declare';
-import { type MasterImplementation, createMasterSpawn, type CreateMasterSpawn } from '../../../types/worker/master';
+import {
+    createMasterSpawn,
+    MasterSpawnAbstractClass as MasterSpawnAbstractClassCommon,
+    type MasterImplementation,
+    type CreateMasterSpawn,
+} from '../../../types/worker/master';
+import { WorkerExposedValue } from '../../../types/worker/worker';
 
-const workerImpl: MasterImplementation<Transferable, Worker> = (worker, options) => {
+export abstract class MasterSpawnAbstractClass<
+    T extends WorkerExposedValue<Transferable>,
+> extends MasterSpawnAbstractClassCommon<Transferable, T> {}
+
+const defaultWorkerImpl: MasterImplementation<Transferable, Worker> = (worker, options) => {
     if (isFunction(options.onExit)) {
         worker.addEventListener('close', (event) => {
             options.onExit!(event.code);
@@ -41,4 +51,4 @@ const workerImpl: MasterImplementation<Transferable, Worker> = (worker, options)
 };
 
 export const spawn: CreateMasterSpawn<Transferable, Worker> = (...args) =>
-    createMasterSpawn(workerImpl as MasterImplementation<unknown, unknown>, ...args);
+    createMasterSpawn(defaultWorkerImpl, ...args);

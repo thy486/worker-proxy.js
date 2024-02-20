@@ -3,17 +3,21 @@ import type * as F from '../fn/worker';
 import * as C from '../class/worker';
 import { type UnshiftArgs, isFunction } from '../../shared/typeUtils';
 import { EMessageResponseType } from '../message/shared';
-import { EAction } from '../action';
+import { CommonActionData, EAction } from '../action';
 import { ClassExportProxy } from '../class/workerShared';
 import { FunctionProxy } from '../fn/workerShared';
 import { Fn } from '../../shared/type';
 
 export interface IWorkerInitOptions {
     onUnhandledRejection?: (e: unknown) => void;
+    /**
+     * @default false
+     */
+    ignoreErrorWhenOnMainThread?: boolean;
 }
 
 export interface IWorkerRuntimeOptions {
-    handleError?: <T>(e: unknown) => T;
+    handleError?: <T>(e: unknown, data: CommonActionData) => T;
 }
 
 export interface IWorkerOptions extends IWorkerInitOptions, IWorkerRuntimeOptions {}
@@ -22,12 +26,15 @@ export type WorkerImplementation<TransferableObject = unknown> = (
     options: IWorkerInitOptions,
 ) => IWorkerRuntime<TransferableObject>;
 
-export type DefineWorkerExpose<TransferableObject = unknown> = <
-    T extends Record<string, C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>>,
->(
+export type WorkerExposedValue<TransferableObject> = Record<
+    string,
+    C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>
+>;
+
+export type DefineWorkerExpose<TransferableObject = unknown> = <T extends WorkerExposedValue<TransferableObject>>(
     exposed: T,
     options?: IWorkerOptions,
-) => void;
+) => UnsubscribeFn;
 
 const strictGetNs = <T extends object, TKey extends keyof T>(exposed: T, ns: TKey): T[TKey] => {
     if (ns in exposed) {
@@ -47,19 +54,15 @@ const strictGetFn = <T extends object, TKey extends keyof T>(exposed: T, fnName:
     }
     throw new ReferenceError(`function(${fnName as string}) is not exposed`);
 };
-let unsubscribeFn!: UnsubscribeFn | undefined;
-export const defineWorkerExpose: UnshiftArgs<DefineWorkerExpose, [workerImpl: WorkerImplementation]> = async (
+
+export const defineWorkerExpose: UnshiftArgs<DefineWorkerExpose, [workerImpl: WorkerImplementation]> = (
     workerImpl,
     exposed,
     options = {},
 ) => {
-    if (unsubscribeFn) {
-        unsubscribeFn();
-        unsubscribeFn = undefined;
-    }
     const runtime = workerImpl(options);
     const handleError = isFunction(options.handleError) ? options.handleError : (e: unknown) => e;
-    unsubscribeFn = runtime.subscribeToMasterMessages(async (messageData) => {
+    const unsubscribeFn = runtime.subscribeToMasterMessages(async (messageData) => {
         const { id, data } = messageData;
         try {
             let ret: unknown;
@@ -173,8 +176,10 @@ export const defineWorkerExpose: UnshiftArgs<DefineWorkerExpose, [workerImpl: Wo
                 type: EMessageResponseType.CALLBACK,
                 id,
                 success: false,
-                error: handleError(e),
+                error: handleError(e, data),
             });
         }
     });
+
+    return unsubscribeFn;
 };

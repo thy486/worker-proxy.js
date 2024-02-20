@@ -3,7 +3,12 @@ import { isFunction } from '../../../shared/typeUtils';
 import { CommonActionData } from '../../../types/action';
 import { IMessageRequest } from '../../../types/message/shared';
 import type { UnsubscribeFn } from '../../../types/worker/declare';
-import { type WorkerImplementation, defineWorkerExpose, type DefineWorkerExpose } from '../../../types/worker/worker';
+import {
+    defineWorkerExpose,
+    type WorkerImplementation,
+    type DefineWorkerExpose,
+    type WorkerExposedValue as WorkerExposedValueCommon,
+} from '../../../types/worker/worker';
 
 function isWorkerRuntime() {
     return typeof self !== 'undefined' &&
@@ -15,7 +20,11 @@ function isWorkerRuntime() {
 
 const workerImpl: WorkerImplementation<Transferable> = (options) => {
     if (!isWorkerRuntime()) {
-        throw new Error('Message worker was defined in the main thread, it will do nothing!');
+        const tips = 'Message worker was defined in the main thread, it will do nothing!';
+        if (options.ignoreErrorWhenOnMainThread !== true) {
+            throw new Error(tips);
+        }
+        console.warn(tips);
     }
     if (isFunction(options.onUnhandledRejection)) {
         self.addEventListener('unhandledrejection', options.onUnhandledRejection);
@@ -39,3 +48,4 @@ const workerImpl: WorkerImplementation<Transferable> = (options) => {
 
 export const expose: DefineWorkerExpose<Transferable> = (...args) => defineWorkerExpose(workerImpl, ...args);
 export type { WorkerImplementation, DefineWorkerExpose, UnsubscribeFn };
+export type WorkerExposedValue = WorkerExposedValueCommon<Transferable>;

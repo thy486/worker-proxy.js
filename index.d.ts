@@ -1,1 +1,1 @@
-export * from './dist/src/envs/node';
+export * from './dist/types/envs/node';

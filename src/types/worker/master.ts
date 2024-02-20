@@ -11,12 +11,13 @@ import {
     serializeToPointer,
 } from '../class/master';
 import { type CreateFunctionSpawn, createFunctionSpawn } from '../fn/master';
-import { type PromiseOrValue } from '../../shared/type';
+import { FilterDict, type PromiseOrValue } from '../../shared/type';
 import { type UnshiftArgs, isFunction, mergeVoidFunction } from '../../shared/typeUtils';
 import type { IClassContext } from '../class/masterShared';
 import type { IMasterRuntime, UnsubscribeFn } from './declare';
-import { EMessageResponseType } from '../message/shared';
 import type { MessageFactory } from '../message/declare';
+import { WorkerExposedValue } from './worker';
+import { createMessageFactory } from './masterShared';
 
 export interface IMasterInitOptions {
     onExit?: (exitCode?: number) => void;
@@ -29,20 +30,15 @@ export interface IMasterRuntimeOptions {
 export interface IWorkerOptions extends IMasterInitOptions, IMasterRuntimeOptions {}
 export interface IMasterSpawnRuntime<
     TransferableObject,
-    T extends Record<
-        string,
-        C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>
-    > = Record<string, C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>>,
-    TFunctionSpawn extends Record<string, F.ExposedModuleTable<TransferableObject>> = {
-        [K in keyof T as T[K] extends F.ExposedModuleTable<TransferableObject>
-            ? K
-            : never]: T[K] extends F.ExposedModuleTable<TransferableObject> ? T[K] : never;
-    },
-    TClassSpawn extends Record<string, C.ExposedModuleTable<TransferableObject>> = {
-        [K in keyof T as T[K] extends C.ExposedModuleTable<TransferableObject>
-            ? K
-            : never]: T[K] extends C.ExposedModuleTable<TransferableObject> ? T[K] : never;
-    },
+    T extends WorkerExposedValue<TransferableObject> = WorkerExposedValue<TransferableObject>,
+    TFunctionSpawn extends Record<string, F.ExposedModuleTable<TransferableObject>> = FilterDict<
+        T,
+        Record<string, F.ExposedModuleTable<TransferableObject>>
+    >,
+    TClassSpawn extends Record<string, C.ExposedModuleTable<TransferableObject>> = FilterDict<
+        T,
+        Record<string, C.ExposedModuleTable<TransferableObject>>
+    >,
 > {
     spawnFunction: CreateFunctionSpawn<TransferableObject, TFunctionSpawn>;
     spawnClass: CreateClassSpawn<TransferableObject, TClassSpawn>;
@@ -56,73 +52,58 @@ export type MasterImplementation<TransferableObject = unknown, TWorker = unknown
     options: IMasterInitOptions,
 ) => PromiseOrValue<IMasterRuntime<TransferableObject>>;
 
-export type CreateMasterSpawn<TransferableObject = unknown, TWorker = unknown> = <
-    T extends Record<string, C.ExposedModuleTable<TransferableObject> | F.ExposedModuleTable<TransferableObject>>,
->(
+export type CreateMasterSpawn<TransferableObject, TWorker> = <T extends WorkerExposedValue<TransferableObject>>(
     worker: TWorker,
     options?: IWorkerOptions,
 ) => Promise<IMasterSpawnRuntime<TransferableObject, T>>;
 
 let unsubscribeFn!: UnsubscribeFn | undefined;
-export const createMasterSpawn: UnshiftArgs<CreateMasterSpawn, [masterImpl: MasterImplementation]> = async (
-    masterImpl,
-    worker,
-    options = {},
-) => {
+
+export type CreateMasterSpawnFunc = UnshiftArgs<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    CreateMasterSpawn<any, any>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [masterImpl: MasterImplementation<any, any>]
+>;
+export abstract class MasterSpawnAbstractClass<
+    TransferableObject,
+    T extends WorkerExposedValue<TransferableObject>,
+    TFunctionSpawn extends Record<string, F.ExposedModuleTable<TransferableObject>> = FilterDict<
+        T,
+        Record<string, F.ExposedModuleTable<TransferableObject>>
+    >,
+    TClassSpawn extends Record<string, C.ExposedModuleTable<TransferableObject>> = FilterDict<
+        T,
+        Record<string, C.ExposedModuleTable<TransferableObject>>
+    >,
+> implements IMasterSpawnRuntime<TransferableObject, T>
+{
+    public constructor(
+        protected _masterImpl: MasterImplementation,
+        protected _options?: IWorkerOptions,
+    ) {}
+
+    public abstract spawnFunction: CreateFunctionSpawn<TransferableObject, TFunctionSpawn>;
+    public abstract spawnClass: CreateClassSpawn<TransferableObject, TClassSpawn>;
+    public abstract deserializePointer: CreatePointerSpawn<TransferableObject, TClassSpawn>;
+    public abstract serializePointer: SerializeToPointer<TransferableObject, TClassSpawn>;
+    public abstract free: Free<TransferableObject, TClassSpawn>;
+}
+
+export const createMasterSpawn: CreateMasterSpawnFunc = async (masterImpl, worker, options = {}) => {
     if (unsubscribeFn) {
         unsubscribeFn();
         unsubscribeFn = undefined;
     }
     const runtime = await masterImpl(worker, options);
-    let callerId = 0;
-    const freedId: number[] = [];
-    const resolvers = new Map<number, (value: unknown) => void>();
-    const rejecters = new Map<number, (reason: unknown) => void>();
-    const finallyTasks: Array<() => void> = [];
     const wrapError = isFunction(options.handleError) ? (e: unknown) => options.handleError!(e) : <T>(e: T): T => e;
-    const execFinalTasks = (): void => {
-        for (const task of finallyTasks) {
-            try {
-                task();
-            } catch (e) {
-                console.warn(e);
-            }
-        }
-        finallyTasks.length = 0;
-    };
     const handleError = (err: unknown): void => {
         for (const rejecter of rejecters.values()) {
             rejecter(wrapError(err));
         }
-        execFinalTasks();
     };
-    unsubscribeFn = runtime.subscribeToWorkerMessages((data) => {
-        switch (data.type) {
-            case EMessageResponseType.CALLBACK: {
-                const id = data.id;
-                const resolver = resolvers.get(id);
-                const rejecter = rejecters.get(id);
-
-                if (resolver && rejecter) {
-                    if (data.success) {
-                        resolver(data.data);
-                        execFinalTasks();
-                        return;
-                    }
-                    rejecter(wrapError(data.error));
-                }
-                // worker terminal
-                else {
-                    console.error('Worker is been stoped!');
-                }
-                execFinalTasks();
-                break;
-            }
-            case EMessageResponseType.EVENT: {
-                throw new Error('Event function is not supported now');
-            }
-        }
-    });
+    const { msg, unsubscribe, rejecters } = createMessageFactory(runtime);
+    unsubscribeFn = unsubscribe;
     unsubscribeFn = mergeVoidFunction(unsubscribeFn, runtime.subscribeToWorkerError(handleError));
     if (isFunction(options.onExit)) {
         unsubscribeFn = mergeVoidFunction(
@@ -135,37 +116,9 @@ export const createMasterSpawn: UnshiftArgs<CreateMasterSpawn, [masterImpl: Mast
     } else {
         unsubscribeFn = mergeVoidFunction(unsubscribeFn, runtime.subscribeToWorkerClose(handleError));
     }
-    const msgSender: MessageFactory = ((value, transferList) => {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        let _callId: number;
-        if (freedId.length > 0) {
-            _callId = freedId.pop()!;
-        } else {
-            _callId = callerId;
-            callerId += 1;
-        }
-
-        const deferTask = (): void => {
-            // clear callId
-            rejecters.delete(_callId);
-            resolvers.delete(_callId);
-            freedId.push(_callId);
-        };
-        const result = new Promise<unknown>((resolve, reject) => {
-            resolvers.set(_callId, resolve);
-            rejecters.set(_callId, reject);
-
-            runtime.postMessageToWorker(
-                {
-                    id: _callId,
-                    data: value,
-                },
-                transferList,
-            );
-        });
-        result.then(deferTask, deferTask);
-        return result;
-    }) as MessageFactory;
+    const msgSender: MessageFactory<unknown> = (value, transferList) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        msg(value, transferList).catch(wrapError) as any;
     const classContext: IClassContext = { GLOBAL_CLASS_OPTION_STORE: {} };
     return {
         spawnClass: (ns, options) => createClassSpawn(msgSender, classContext, ns, options),

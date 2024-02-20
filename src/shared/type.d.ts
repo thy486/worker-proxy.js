@@ -16,6 +16,12 @@ export type FunctionTable<TPropertyTable> = {
         : Fn;
 };
 
+export type FilterDict<Value, Format extends Record<any, any>> = Format extends Record<any, infer Item>
+    ? {
+          [K in keyof Value as Value[K] extends Item ? K : never]: Value[K] extends Item ? Value[K] : never;
+      }
+    : Value;
+
 export type ConstructorTypeCustom<TArgs extends any[] = any[], TResult = any> = new (...args: TArgs) => TResult;
 export type ConstructorFunctionType<T extends ClassType> = (...args: ConstructorParameters<T>) => InstanceType<T>;
 export type FunctionToConstructorType<T extends Fn = Fn> = ConstructorTypeCustom<Parameters<T>, ReturnType<T>>;

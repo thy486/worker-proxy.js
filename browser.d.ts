@@ -1,1 +1,1 @@
-export * from './dist/src/envs/browser';
+export * from './dist/types/envs/browser';
