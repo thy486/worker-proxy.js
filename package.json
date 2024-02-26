@@ -3,7 +3,7 @@
   "module": "dist/es/envs/node/index.js",
   "main": "dist/cjs/envs/node/index.cjs",
   "types": "dist/envs/node/index.d.ts",
-  "version": "0.0.1-beta.10",
+  "version": "0.1.0-beta.0",
   "description": "worker module export implementation with es6 api",
   "type": "module",
   "devDependencies": {
@@ -44,6 +44,11 @@
       "require": "./dist/cjs/envs/browser/index.cjs",
       "import": "./dist/es/envs/browser/index.js",
       "types": "./dist/types/envs/browser/index.d.ts"
+    },
+    "./iframe": {
+      "require": "./dist/cjs/envs/iframe/index.cjs",
+      "import": "./dist/es/envs/iframe/index.js",
+      "types": "./dist/types/envs/iframe/index.d.ts"
     }
   },
   "scripts": {

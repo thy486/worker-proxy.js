@@ -45,6 +45,12 @@ export interface IMasterSpawnRuntime<
     deserializePointer: CreatePointerSpawn<TransferableObject, TClassSpawn>;
     serializePointer: SerializeToPointer<TransferableObject, TClassSpawn>;
     free: Free<TransferableObject, TClassSpawn>;
+    /**
+     * @desc danger
+     * 
+     * If tasks were not finished, it will make forever pending tasks.
+     */
+    despawn: UnsubscribeFn;
 }
 
 export type MasterImplementation<TransferableObject = unknown, TWorker = unknown> = (
@@ -56,8 +62,6 @@ export type CreateMasterSpawn<TransferableObject, TWorker> = <T extends WorkerEx
     worker: TWorker,
     options?: IWorkerOptions,
 ) => Promise<IMasterSpawnRuntime<TransferableObject, T>>;
-
-let unsubscribeFn!: UnsubscribeFn | undefined;
 
 export type CreateMasterSpawnFunc = UnshiftArgs<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,13 +92,11 @@ export abstract class MasterSpawnAbstractClass<
     public abstract deserializePointer: CreatePointerSpawn<TransferableObject, TClassSpawn>;
     public abstract serializePointer: SerializeToPointer<TransferableObject, TClassSpawn>;
     public abstract free: Free<TransferableObject, TClassSpawn>;
+    public abstract despawn: UnsubscribeFn;
 }
 
 export const createMasterSpawn: CreateMasterSpawnFunc = async (masterImpl, worker, options = {}) => {
-    if (unsubscribeFn) {
-        unsubscribeFn();
-        unsubscribeFn = undefined;
-    }
+    let unsubscribeFn: UnsubscribeFn | undefined = undefined;
     const runtime = await masterImpl(worker, options);
     const wrapError = isFunction(options.handleError) ? (e: unknown) => options.handleError!(e) : <T>(e: T): T => e;
     const handleError = (err: unknown): void => {
@@ -127,5 +129,6 @@ export const createMasterSpawn: CreateMasterSpawnFunc = async (masterImpl, worke
             createPointerSpawn(msgSender, classContext, ns, ctorKey as string, pointer),
         serializePointer: serializeToPointer,
         free: (instance) => free(msgSender, classContext, instance as never),
+        despawn: unsubscribeFn
     } as IMasterSpawnRuntime<unknown, Record<string, C.ExposedModuleTable<unknown> | F.ExposedModuleTable<unknown>>>;
 };
