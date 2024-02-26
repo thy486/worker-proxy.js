@@ -33,7 +33,7 @@ const defaultWorkerImpl: MasterImplementation<Transferable, HTMLIFrameElement> =
     return {
         postMessageToWorker(message, transferList) {
             iframeWindow.postMessage(message, {
-                transfer: transferList!
+                transfer: transferList!,
             });
         },
         subscribeToWorkerMessages(onMessage) {

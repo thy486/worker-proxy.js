@@ -47,7 +47,7 @@ export interface IMasterSpawnRuntime<
     free: Free<TransferableObject, TClassSpawn>;
     /**
      * @desc danger
-     * 
+     *
      * If tasks were not finished, it will make forever pending tasks.
      */
     despawn: UnsubscribeFn;
@@ -129,6 +129,6 @@ export const createMasterSpawn: CreateMasterSpawnFunc = async (masterImpl, worke
             createPointerSpawn(msgSender, classContext, ns, ctorKey as string, pointer),
         serializePointer: serializeToPointer,
         free: (instance) => free(msgSender, classContext, instance as never),
-        despawn: unsubscribeFn
+        despawn: unsubscribeFn,
     } as IMasterSpawnRuntime<unknown, Record<string, C.ExposedModuleTable<unknown> | F.ExposedModuleTable<unknown>>>;
 };

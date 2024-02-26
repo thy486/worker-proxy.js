@@ -34,11 +34,7 @@ export default defineConfig({
     ],
     build: {
         lib: {
-            entry: [
-                'src/envs/browser/index.ts',
-                'src/envs/node/index.ts',
-                'src/envs/iframe/index.ts',
-            ],
+            entry: ['src/envs/browser/index.ts', 'src/envs/node/index.ts', 'src/envs/iframe/index.ts'],
         },
         ssr: true,
         rollupOptions: {
